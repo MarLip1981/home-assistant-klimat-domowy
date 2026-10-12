@@ -5,6 +5,7 @@ description: >-
 triggers:
   - trigger: state
     entity_id: sensor.klimat_domowy_zalecenie_wietrzenia
+    to: null
 conditions:
   - condition: template
     value_template: >-
