@@ -11,7 +11,11 @@ from .const import (
     CONF_AQI,
     CONF_BOILER_STATE,
     CONF_INDOOR_HUMIDITY,
+    CONF_INDOOR_HUMIDITY_2,
+    CONF_INDOOR_HUMIDITY_3,
     CONF_INDOOR_TEMPERATURE,
+    CONF_INDOOR_TEMPERATURE_2,
+    CONF_INDOOR_TEMPERATURE_3,
     CONF_OUTDOOR_HUMIDITY,
     CONF_OUTDOOR_TEMPERATURE,
     CONF_PM10,
@@ -30,6 +34,10 @@ from .const import (
 ENTITY_FIELDS = (
     CONF_INDOOR_TEMPERATURE,
     CONF_INDOOR_HUMIDITY,
+    CONF_INDOOR_TEMPERATURE_2,
+    CONF_INDOOR_HUMIDITY_2,
+    CONF_INDOOR_TEMPERATURE_3,
+    CONF_INDOOR_HUMIDITY_3,
     CONF_OUTDOOR_TEMPERATURE,
     CONF_OUTDOOR_HUMIDITY,
     CONF_PM25,
@@ -47,9 +55,13 @@ def _entity_schema(current: dict) -> dict:
     schema = {}
     for key in ENTITY_FIELDS:
         default = current.get(key, DEFAULT_ENTITIES.get(key))
-        schema[vol.Optional(key, default=default)] = selector.EntitySelector(
+        entity_selector = selector.EntitySelector(
             selector.EntitySelectorConfig(domain="sensor")
         )
+        if key in {CONF_INDOOR_TEMPERATURE_2, CONF_INDOOR_HUMIDITY_2, CONF_INDOOR_TEMPERATURE_3, CONF_INDOOR_HUMIDITY_3} and default is None:
+            schema[vol.Optional(key)] = entity_selector
+        else:
+            schema[vol.Optional(key, default=default)] = entity_selector
     return schema
 
 

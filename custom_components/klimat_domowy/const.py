@@ -8,6 +8,10 @@ SCAN_INTERVAL = timedelta(minutes=5)
 
 CONF_INDOOR_TEMPERATURE = "indoor_temperature"
 CONF_INDOOR_HUMIDITY = "indoor_humidity"
+CONF_INDOOR_TEMPERATURE_2 = "indoor_temperature_2"
+CONF_INDOOR_HUMIDITY_2 = "indoor_humidity_2"
+CONF_INDOOR_TEMPERATURE_3 = "indoor_temperature_3"
+CONF_INDOOR_HUMIDITY_3 = "indoor_humidity_3"
 CONF_OUTDOOR_TEMPERATURE = "outdoor_temperature"
 CONF_OUTDOOR_HUMIDITY = "outdoor_humidity"
 CONF_PM25 = "pm25"

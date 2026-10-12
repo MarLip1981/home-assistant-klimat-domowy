@@ -20,7 +20,11 @@ from .const import (
     CONF_AQI,
     CONF_BOILER_STATE,
     CONF_INDOOR_HUMIDITY,
+    CONF_INDOOR_HUMIDITY_2,
+    CONF_INDOOR_HUMIDITY_3,
     CONF_INDOOR_TEMPERATURE,
+    CONF_INDOOR_TEMPERATURE_2,
+    CONF_INDOOR_TEMPERATURE_3,
     CONF_OUTDOOR_HUMIDITY,
     CONF_OUTDOOR_TEMPERATURE,
     CONF_PM10,
@@ -169,11 +173,37 @@ async def async_setup_entry(
                 return None
             return state.state
 
-        temp_in = _number(state_for(CONF_INDOOR_TEMPERATURE))
-        hum_in = _number(state_for(CONF_INDOOR_HUMIDITY))
+        indoor_rooms = [
+            {
+                "name": "główny czujnik",
+                "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE)),
+                "humidity": _number(state_for(CONF_INDOOR_HUMIDITY)),
+            },
+            {
+                "name": "drugi czujnik",
+                "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE_2)),
+                "humidity": _number(state_for(CONF_INDOOR_HUMIDITY_2)),
+            },
+            {
+                "name": "trzeci czujnik",
+                "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE_3)),
+                "humidity": _number(state_for(CONF_INDOOR_HUMIDITY_3)),
+            },
+        ]
+        valid_temperatures = [room["temperature"] for room in indoor_rooms if room["temperature"] is not None]
+        valid_humidities = [room["humidity"] for room in indoor_rooms if room["humidity"] is not None]
+        temp_in = sum(valid_temperatures) / len(valid_temperatures) if valid_temperatures else None
+        temp_in_max = max(valid_temperatures) if valid_temperatures else None
+        hum_in = max(valid_humidities) if valid_humidities else None
         temp_out = _number(state_for(CONF_OUTDOOR_TEMPERATURE))
         hum_out = _number(state_for(CONF_OUTDOOR_HUMIDITY))
-        abs_humidity_in = _absolute_humidity(temp_in, hum_in)
+        indoor_absolute_humidities = [
+            _absolute_humidity(room["temperature"], room["humidity"])
+            for room in indoor_rooms
+            if room["temperature"] is not None and room["humidity"] is not None
+        ]
+        indoor_absolute_humidities = [value for value in indoor_absolute_humidities if value is not None]
+        abs_humidity_in = max(indoor_absolute_humidities) if indoor_absolute_humidities else None
         abs_humidity_out = _absolute_humidity(temp_out, hum_out)
         pm25 = _number(state_for(CONF_PM25))
         pm10 = _number(state_for(CONF_PM10))
@@ -222,7 +252,7 @@ async def async_setup_entry(
         else:
             allergy_risk = "Niskie według dostępnych danych"
 
-        data_incomplete = temp_in is None or hum_in is None or temp_out is None
+        data_incomplete = not valid_temperatures or not valid_humidities or temp_out is None
         if hum_in is not None and hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
             if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0:
@@ -315,7 +345,19 @@ async def async_setup_entry(
             "attributes": {
                 "reason": reason,
                 "indoor_temperature": temp_in,
+                "indoor_temperature_max": temp_in_max,
+                "indoor_temperature_readings": valid_temperatures,
                 "indoor_humidity": hum_in,
+                "indoor_humidity_readings": valid_humidities,
+                "indoor_room_readings": [
+                    {
+                        "name": room["name"],
+                        "temperature": room["temperature"],
+                        "humidity": room["humidity"],
+                    }
+                    for room in indoor_rooms
+                    if room["temperature"] is not None or room["humidity"] is not None
+                ],
                 "outdoor_temperature": temp_out,
                 "outdoor_humidity": hum_out,
                 "indoor_absolute_humidity_g_m3": round(abs_humidity_in, 2) if abs_humidity_in is not None else None,
@@ -354,6 +396,10 @@ async def async_setup_entry(
         for key in (
             CONF_INDOOR_TEMPERATURE,
             CONF_INDOOR_HUMIDITY,
+            CONF_INDOOR_TEMPERATURE_2,
+            CONF_INDOOR_HUMIDITY_2,
+            CONF_INDOOR_TEMPERATURE_3,
+            CONF_INDOOR_HUMIDITY_3,
             CONF_OUTDOOR_TEMPERATURE,
             CONF_OUTDOOR_HUMIDITY,
             CONF_PM25,
