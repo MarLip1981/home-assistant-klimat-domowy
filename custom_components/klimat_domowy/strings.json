@@ -42,7 +42,7 @@
           "boiler_state": "Stan obiegu grzewczego",
           "rain": "Opady w ostatniej godzinie",
           "pm25_limit": "Próg ostrożności PM2.5 (µg/m³)",
-          "pm10_limit": "Próg ostrożności PM10 (µg/m³)",
+          "pm10_limit": "Próg ostrożności PM10 (µg/m³)"
         }
       }
     }
