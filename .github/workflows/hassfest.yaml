@@ -1,0 +1,16 @@
+name: Validate with Home Assistant hassfest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate integration
+        uses: home-assistant/actions/hassfest@master
