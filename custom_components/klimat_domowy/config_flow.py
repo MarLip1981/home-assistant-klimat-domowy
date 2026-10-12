@@ -12,7 +12,6 @@ from .const import (
     CONF_BOILER_STATE,
     CONF_INDOOR_HUMIDITY,
     CONF_INDOOR_TEMPERATURE,
-    CONF_NOTIFY_SERVICE,
     CONF_OUTDOOR_HUMIDITY,
     CONF_OUTDOOR_TEMPERATURE,
     CONF_PM10,
@@ -23,7 +22,6 @@ from .const import (
     CONF_POLLEN_RISK_HOURLY,
     CONF_RAIN,
     DEFAULT_ENTITIES,
-    DEFAULT_NOTIFY_SERVICE,
     DEFAULT_PM10_LIMIT,
     DEFAULT_PM25_LIMIT,
     DOMAIN,
@@ -76,10 +74,6 @@ def _options_schema(current: dict) -> vol.Schema:
                     min=1, max=200, step=1, mode=selector.NumberSelectorMode.BOX
                 )
             ),
-            vol.Optional(
-                CONF_NOTIFY_SERVICE,
-                default=current.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE),
-            ): selector.TextSelector(selector.TextSelectorConfig()),
         }
     )
     return vol.Schema(schema)
