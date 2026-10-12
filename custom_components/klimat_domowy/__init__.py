@@ -6,11 +6,6 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN, PLATFORMS
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up from configuration.yaml (not required)."""
-    return True
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a configured entry."""
     hass.data.setdefault(DOMAIN, {})
