@@ -311,7 +311,7 @@ async def async_setup_entry(
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
             reason = "Na zewnątrz nie jest chłodniej niż w domu. Wietrz nadal, gdy wymaga tego jakość powietrza wewnętrznego."
 
-        if hum_in is not None and hum_in >= 70 and (poor_air or pollen_high):
+        if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high):
             conflicts = []
             if poor_air:
                 conflicts.append("podwyższone zanieczyszczenia: " + ", ".join(poor_air_reasons))
