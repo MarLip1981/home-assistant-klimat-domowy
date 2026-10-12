@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Klimat Domowy",
+        "description": "Wybierz encje źródłowe. Nie wszystkie muszą być dostępne od razu; brak danych będzie wyraźnie sygnalizowany.",
+        "data": {
+          "indoor_temperature": "Temperatura wewnętrzna",
+          "indoor_humidity": "Wilgotność wewnętrzna",
+          "outdoor_temperature": "Temperatura zewnętrzna",
+          "outdoor_humidity": "Wilgotność zewnętrzna",
+          "pm25": "Zanieczyszczenie PM2.5",
+          "pm10": "Zanieczyszczenie PM10",
+          "aqi": "Indeks jakości powietrza OpenWeatherMap",
+          "pollen_risk": "Ryzyko alergiczne — aktualne",
+          "pollen_risk_hourly": "Ryzyko alergiczne — godzinowe",
+          "boiler_state": "Stan obiegu grzewczego",
+          "rain": "Opady w ostatniej godzinie"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Integracja jest już skonfigurowana."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ustawienia Klimat Domowy",
+        "description": "Zmień przypisane encje i progi ostrożności.",
+        "data": {
+          "indoor_temperature": "Temperatura wewnętrzna",
+          "indoor_humidity": "Wilgotność wewnętrzna",
+          "outdoor_temperature": "Temperatura zewnętrzna",
+          "outdoor_humidity": "Wilgotność zewnętrzna",
+          "pm25": "Zanieczyszczenie PM2.5",
+          "pm10": "Zanieczyszczenie PM10",
+          "aqi": "Indeks jakości powietrza OpenWeatherMap",
+          "pollen_risk": "Ryzyko alergiczne — aktualne",
+          "pollen_risk_hourly": "Ryzyko alergiczne — godzinowe",
+          "boiler_state": "Stan obiegu grzewczego",
+          "rain": "Opady w ostatniej godzinie",
+          "pm25_limit": "Próg ostrożności PM2.5 (µg/m³)",
+          "pm10_limit": "Próg ostrożności PM10 (µg/m³)",
+          "notify_service": "Usługa powiadomień (na przyszłość)"
+        }
+      }
+    }
+  }
+}
