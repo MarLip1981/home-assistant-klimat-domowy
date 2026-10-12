@@ -223,16 +223,7 @@ async def async_setup_entry(
             allergy_risk = "Niskie według dostępnych danych"
 
         data_incomplete = temp_in is None or hum_in is None or temp_out is None
-        if data_incomplete:
-            recommendation = "Sprawdź czujniki — brak pełnych danych"
-            reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
-        elif poor_air:
-            recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
-            reason = "Podwyższone wskazania: " + ", ".join(poor_air_reasons) + ". Wietrz niezbędnie i krótko; rozważ filtrację."
-        elif pollen_high:
-            recommendation = "Wietrz krótko — wysokie ryzyko pyłków"
-            reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
-        elif hum_in >= 70:
+        if hum_in is not None and hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
             if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0:
                 reason = (
@@ -247,7 +238,7 @@ async def async_setup_entry(
                     "dom — wilgotność bezwzględna na zewnątrz nie jest wyraźnie niższa "
                     "albo brakuje danych do porównania."
                 )
-        elif hum_in >= 60:
+        elif hum_in is not None and hum_in >= 60:
             recommendation = "Obserwuj wilgotność — rozważ krótkie wietrzenie"
             if abs_humidity_in is not None and abs_humidity_out is not None:
                 if abs_humidity_out <= abs_humidity_in - 1.0:
@@ -268,6 +259,15 @@ async def async_setup_entry(
                     "porównania ilości wilgoci w powietrzu wewnątrz i na zewnątrz. "
                     "Nie zakładaj, że samo otwarcie okna osuszy dom."
                 )
+        elif data_incomplete:
+            recommendation = "Sprawdź czujniki — brak pełnych danych"
+            reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
+        elif poor_air:
+            recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
+            reason = "Podwyższone wskazania: " + ", ".join(poor_air_reasons) + ". Wietrz niezbędnie i krótko; rozważ filtrację."
+        elif pollen_high:
+            recommendation = "Wietrz krótko — wysokie ryzyko pyłków"
+            reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
             reason = "Chłodna pogoda: zwykle wystarczy około 3–5 minut intensywnego wietrzenia."
@@ -282,10 +282,16 @@ async def async_setup_entry(
             reason = "Na zewnątrz nie jest chłodniej niż w domu. Wietrz nadal, gdy wymaga tego jakość powietrza wewnętrznego."
 
         if hum_in is not None and hum_in >= 70 and (poor_air or pollen_high):
+            conflicts = []
+            if poor_air:
+                conflicts.append("podwyższone zanieczyszczenia: " + ", ".join(poor_air_reasons))
+            if pollen_high:
+                conflicts.append("wysokie ryzyko pyłków")
             reason += (
-                " Wilgotność w domu jest również bardzo wysoka. Nie ignoruj problemu wilgoci: "
-                "sprawdź skuteczność i kierunek przepływu wentylacji; jeśli wymiana powietrza "
-                "jest konieczna, wybierz możliwie krótki okres i ogranicz napływ zanieczyszczeń."
+                " Jednocześnie występuje " + " oraz ".join(conflicts) + ". "
+                "Nie ignoruj problemu wilgoci, ale nie zakładaj też, że otwarcie okna jest "
+                "najlepszym rozwiązaniem. Sprawdź skuteczność i kierunek przepływu wentylacji; "
+                "ogranicz napływ zanieczyszczeń i rozważ filtrację."
             )
         if not pollution_known:
             reason += " Brak odczytów zanieczyszczeń nie oznacza, że powietrze jest czyste."
