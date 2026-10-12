@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -284,13 +284,43 @@ async def async_setup_entry(
 
     coordinator = DataUpdateCoordinator(
         hass,
-        logger=__import__("logging").getLogger(__name__),
+        logger=logging.getLogger(__name__),
         name="Klimat Domowy",
         update_method=async_update_data,
         update_interval=SCAN_INTERVAL,
     )
     await coordinator.async_config_entry_first_refresh()
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+
+    source_entity_ids = {
+        options.get(key)
+        for key in (
+            CONF_INDOOR_TEMPERATURE,
+            CONF_INDOOR_HUMIDITY,
+            CONF_OUTDOOR_TEMPERATURE,
+            CONF_OUTDOOR_HUMIDITY,
+            CONF_PM25,
+            CONF_PM10,
+            CONF_AQI,
+            CONF_POLLEN_RISK,
+            CONF_POLLEN_RISK_HOURLY,
+            CONF_BOILER_STATE,
+            CONF_RAIN,
+        )
+        if options.get(key)
+    }
+
+    @callback
+    def _source_changed(event) -> None:
+        """Refresh promptly when one of the selected source sensors changes."""
+        coordinator.async_request_refresh()
+
+    if source_entity_ids:
+        entry.async_on_unload(
+            async_track_state_change_event(
+                hass, list(source_entity_ids), _source_changed
+            )
+        )
 
     async_add_entities(
         KlimatDomowySensor(coordinator, entry, description)
