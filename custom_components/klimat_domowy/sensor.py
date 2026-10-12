@@ -242,7 +242,7 @@ async def async_setup_entry(
                 )
             else:
                 reason = (
-                    "Wilgotność wewnętrzna jest bardzo wysoka. Użyj sprawnego wyciągu "
+                    "Wilgotność wewnętrzna jest bardzo wysoka. Sprawdź skuteczność i kierunek przepływu wyciągu "
                     "i sprawdź źródła wilgoci. Nie zakładaj, że samo otwarcie okna osuszy "
                     "dom — wilgotność bezwzględna na zewnątrz nie jest wyraźnie niższa "
                     "albo brakuje danych do porównania."
@@ -281,6 +281,12 @@ async def async_setup_entry(
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
             reason = "Na zewnątrz nie jest chłodniej niż w domu. Wietrz nadal, gdy wymaga tego jakość powietrza wewnętrznego."
 
+        if hum_in is not None and hum_in >= 70 and (poor_air or pollen_high):
+            reason += (
+                " Wilgotność w domu jest również bardzo wysoka. Nie ignoruj problemu wilgoci: "
+                "sprawdź skuteczność i kierunek przepływu wentylacji; jeśli wymiana powietrza "
+                "jest konieczna, wybierz możliwie krótki okres i ogranicz napływ zanieczyszczeń."
+            )
         if not pollution_known:
             reason += " Brak odczytów zanieczyszczeń nie oznacza, że powietrze jest czyste."
         if not pollen_known:
@@ -321,6 +327,8 @@ async def async_setup_entry(
                 "pollution_threshold_pm2_5": pm25_limit,
                 "pollution_threshold_pm10": pm10_limit,
                 "poor_air_reasons": poor_air_reasons,
+                "ventilation_flow_direction_available": False,
+                "ventilation_flow_note": "Kierunek przepływu nie jest mierzony; zalecenie nie potwierdza, że kanał wyciąga powietrze.",
                 "advice_is_medical": False,
             },
         }
