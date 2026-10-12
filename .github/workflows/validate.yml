@@ -1,0 +1,36 @@
+name: Validate integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Python syntax
+        run: python -m compileall -q custom_components/klimat_domowy
+      - name: Validate JSON files
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          paths = [
+              Path("custom_components/klimat_domowy/manifest.json"),
+              Path("custom_components/klimat_domowy/strings.json"),
+              Path("custom_components/klimat_domowy/translations/pl.json"),
+              Path("hacs.json"),
+          ]
+          for path in paths:
+              json.loads(path.read_text(encoding="utf-8"))
+              print(f"OK: {path}")
+          PY
