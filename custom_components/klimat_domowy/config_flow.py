@@ -103,14 +103,11 @@ class KlimatDomowyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(config_entry):
         """Return options flow."""
-        return KlimatDomowyOptionsFlow(config_entry)
+        return KlimatDomowyOptionsFlow()
 
 
 class KlimatDomowyOptionsFlow(config_entries.OptionsFlow):
     """Manage integration options."""
-
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage source entities and thresholds."""
