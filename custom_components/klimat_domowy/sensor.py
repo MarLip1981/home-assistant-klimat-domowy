@@ -115,6 +115,16 @@ def _text(value: Any) -> str:
     return str(value).strip().lower().replace("_", " ").replace("-", " ")
 
 
+def _absolute_humidity(temp_c: float | None, relative_humidity: float | None) -> float | None:
+    """Calculate absolute humidity in g/m³ from temperature and relative humidity."""
+    if temp_c is None or relative_humidity is None:
+        return None
+    if not 0 <= relative_humidity <= 100 or temp_c <= -243.5:
+        return None
+    vapor_pressure = 6.112 * math.exp((17.67 * temp_c) / (temp_c + 243.5))
+    return 216.74 * vapor_pressure * (relative_humidity / 100) / (273.15 + temp_c)
+
+
 def _pollen_is_high(value: Any) -> bool:
     """Recognize common text and numeric pollen risk levels."""
     text = _text(value)
@@ -163,6 +173,8 @@ async def async_setup_entry(
         hum_in = _number(state_for(CONF_INDOOR_HUMIDITY))
         temp_out = _number(state_for(CONF_OUTDOOR_TEMPERATURE))
         hum_out = _number(state_for(CONF_OUTDOOR_HUMIDITY))
+        abs_humidity_in = _absolute_humidity(temp_in, hum_in)
+        abs_humidity_out = _absolute_humidity(temp_out, hum_out)
         pm25 = _number(state_for(CONF_PM25))
         pm10 = _number(state_for(CONF_PM10))
         aqi = _number(state_for(CONF_AQI))
@@ -222,13 +234,40 @@ async def async_setup_entry(
             reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
         elif hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
-            if temp_out is not None and temp_in is not None and temp_out < temp_in:
-                reason = "Wilgotność wewnętrzna jest bardzo wysoka. Użyj wentylacji/wyciągu; jeśli powietrze zewnętrzne jest odpowiednie, krótko przewietrz."
+            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0:
+                reason = (
+                    "Wilgotność wewnętrzna jest bardzo wysoka, a powietrze zewnętrzne ma "
+                    "wyraźnie mniej wilgoci bezwzględnej. Jeśli jakość powietrza i pyłki "
+                    "na to pozwalają, krótko przewietrz; użyj też wyciągu i sprawdź źródła wilgoci."
+                )
             else:
-                reason = "Wilgotność wewnętrzna jest bardzo wysoka. Użyj wentylacji/wyciągu i sprawdź źródła wilgoci."
+                reason = (
+                    "Wilgotność wewnętrzna jest bardzo wysoka. Użyj sprawnego wyciągu "
+                    "i sprawdź źródła wilgoci. Nie zakładaj, że samo otwarcie okna osuszy "
+                    "dom — wilgotność bezwzględna na zewnątrz nie jest wyraźnie niższa "
+                    "albo brakuje danych do porównania."
+                )
         elif hum_in >= 60:
             recommendation = "Obserwuj wilgotność — rozważ krótkie wietrzenie"
-            reason = "Wilgotność wewnętrzna podwyższona; oceniaj ją w kontekście temperatury i warunków zewnętrznych."
+            if abs_humidity_in is not None and abs_humidity_out is not None:
+                if abs_humidity_out <= abs_humidity_in - 1.0:
+                    reason = (
+                        "Wilgotność wewnętrzna jest podwyższona, a powietrze zewnętrzne "
+                        "jest wyraźnie suchsze w ujęciu bezwzględnym. Krótkie wietrzenie "
+                        "może pomóc, jeśli jakość powietrza i ryzyko pyłków są odpowiednie."
+                    )
+                else:
+                    reason = (
+                        "Wilgotność wewnętrzna jest podwyższona, ale powietrze zewnętrzne "
+                        "nie jest wyraźnie suchsze. Wietrz z uwzględnieniem jakości powietrza "
+                        "i korzystaj z wyciągu przy źródłach wilgoci."
+                    )
+            else:
+                reason = (
+                    "Wilgotność wewnętrzna jest podwyższona, ale brakuje danych do "
+                    "porównania ilości wilgoci w powietrzu wewnątrz i na zewnątrz. "
+                    "Nie zakładaj, że samo otwarcie okna osuszy dom."
+                )
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
             reason = "Chłodna pogoda: zwykle wystarczy około 3–5 minut intensywnego wietrzenia."
@@ -267,6 +306,9 @@ async def async_setup_entry(
                 "indoor_humidity": hum_in,
                 "outdoor_temperature": temp_out,
                 "outdoor_humidity": hum_out,
+                "indoor_absolute_humidity_g_m3": round(abs_humidity_in, 2) if abs_humidity_in is not None else None,
+                "outdoor_absolute_humidity_g_m3": round(abs_humidity_out, 2) if abs_humidity_out is not None else None,
+                "absolute_humidity_difference_g_m3": round(abs_humidity_in - abs_humidity_out, 2) if abs_humidity_in is not None and abs_humidity_out is not None else None,
                 "pm2_5": pm25,
                 "pm10": pm10,
                 "air_quality_index": aqi,
