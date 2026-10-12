@@ -1,6 +1,6 @@
 # Klimat Domowy
 
-Custom Home Assistant integration for indoor-air and ventilation guidance, with allergy-aware recommendations.
+A Home Assistant integration developed for one specific household to provide indoor-air and ventilation guidance with allergy-aware recommendations. It is not intended as a generic HACS release.
 
 ## Goals
 
@@ -34,7 +34,7 @@ Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap 
 
 Copy `custom_components/klimat_domowy` into `config/custom_components/klimat_domowy`, restart Home Assistant, then add **Klimat Domowy** under Settings → Devices & services → Add integration.
 
-HACS metadata is present, but this repository is not yet a tested/released HACS version. Do not treat the current development build as production-ready until it has been validated in Home Assistant.
+This is a household-specific development repository, not a HACS distribution. The integration is configured through the Home Assistant UI so source entities can be mapped to the sensors actually installed in this home. Do not treat the current development build as production-ready until it has been tested in the live Home Assistant instance.
 
 ## Phone replacement and notifications
 
