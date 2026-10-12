@@ -26,7 +26,6 @@ jobs:
 
           paths = [
               Path("custom_components/klimat_domowy/manifest.json"),
-              Path("custom_components/klimat_domowy/strings.json"),
               Path("custom_components/klimat_domowy/translations/pl.json"),
               Path("hacs.json"),
           ]
