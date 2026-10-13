@@ -19,6 +19,7 @@
       this.attachShadow({ mode: "open" });
       this._config = { ...DEFAULTS };
       this._hass = undefined;
+      this._lastMarkup = "";
     }
 
     setConfig(config) {
@@ -73,7 +74,7 @@
         || lowerTitle.includes("pilnie")
         || lowerTitle.includes("wysokie ryzyko")
         || lowerTitle.includes("sprawdź czujniki");
-      this.shadowRoot.innerHTML = `
+      const markup = `
         <style>
           :host{display:block;color:var(--primary-text-color)}
           ha-card{overflow:hidden;border-radius:var(--ha-card-border-radius,12px)}
@@ -109,6 +110,10 @@
           </div>
           <div class="foot">Zalecenia pomocnicze, nie medyczne. Kierunek przepływu wentylacji nie jest mierzony.</div>
         </ha-card>`;
+      if (markup !== this._lastMarkup) {
+        this.shadowRoot.innerHTML = markup;
+        this._lastMarkup = markup;
+      }
     }
   }
 
