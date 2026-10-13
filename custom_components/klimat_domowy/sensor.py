@@ -276,7 +276,7 @@ async def async_setup_entry(
             reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
-            reason = "Chłodna pogoda: zwykle wystarczy około 3–5 minut intensywnego wietrzenia."
+            reason = "Na zewnątrz jest chłodno. Otwórz okna szeroko na około 3–5 minut, najlepiej po przeciwnych stronach mieszkania, jeśli to możliwe, aby uzyskać szybki przepływ powietrza. Nie uchylaj ich na długo i nie machaj nimi — chodzi o krótką, mocną wymianę powietrza. Jeśli jakość powietrza lub ryzyko pyłków są podwyższone, ogranicz wietrzenie i kieruj się tym ostrzeżeniem."
         elif temp_out < 18:
             recommendation = "Można krótko przewietrzyć"
             reason = "Umiarkowana temperatura zewnętrzna sprzyja krótkiej wymianie powietrza, jeśli nie ma innych przeciwwskazań."
