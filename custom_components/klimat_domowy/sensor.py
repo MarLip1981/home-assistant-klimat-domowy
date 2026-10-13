@@ -359,9 +359,6 @@ async def async_setup_entry(
         # Build a useful explanation: explain the decision, quote the readings
         # that matter, and mention important competing factors without dumping
         # every available sensor into one long paragraph.
-        def shown(value: float | None, unit: str = "") -> str:
-            return "brak odczytu" if value is None else f"{value:.1f}{unit}"
-
         if hum_in is not None and hum_in >= 70:
             reason = (
                 f"W domu wilgotność wynosi {hum_in:.0f}%, czyli jest bardzo wysoka "
@@ -477,6 +474,38 @@ async def async_setup_entry(
             reason += " Nie ma odczytu zanieczyszczeń, więc nie można potwierdzić, że powietrze na zewnątrz jest czyste."
         if not pollen_known:
             reason += " Brakuje danych o pyłkach; nie należy tego traktować jako potwierdzenia braku alergenów."
+
+        # When outdoor conditions are not flagged as poor, show the values
+        # behind that assessment too, so "no warning" is not an unexplained verdict.
+        if pollution_known and not poor_air:
+            normal_air_readings = []
+            if pm25 is not None:
+                normal_air_readings.append(f"PM2.5 {pm25:.1f} µg/m³ przy progu {pm25_limit:g}")
+            if pm10 is not None:
+                normal_air_readings.append(f"PM10 {pm10:.1f} µg/m³ przy progu {pm10_limit:g}")
+            if aqi is not None:
+                normal_air_readings.append(f"indeks jakości {aqi:.0f}/5")
+            reason += (
+                " Odczyty zanieczyszczeń: " + ", ".join(normal_air_readings)
+                + "; żaden z dostępnych wskaźników nie przekracza ustawionych progów."
+            )
+        if pollen_known and not (pollen_high or pollen_present):
+            pollen_description = pollen_values[0] or pollen_values[1] or "brak szczegółowego opisu"
+            forecast_description = (
+                f"; prognoza godzinowa: {pollen_values[1]}"
+                if pollen_values[1] else ""
+            )
+            reason += (
+                f" Pyłki: bieżące źródło podaje „{pollen_description}”"
+                f"{forecast_description}. To opis źródła, nie gwarancja braku objawów."
+            )
+
+        if len(valid_temperatures) > 1 and max(valid_temperatures) - min(valid_temperatures) >= 2.0:
+            reason += (
+                f" Czujniki pokazują różnicę temperatur w domu "
+                f"{max(valid_temperatures) - min(valid_temperatures):.1f}°C; "
+                "sprawdź, czy pomieszczenia nie nagrzewają się lub nie wychładzają nierówno."
+            )
         if boiler.upper() == "HEATING":
             reason += " Obieg grzewczy aktualnie grzeje — unikaj długiego wietrzenia, by nie wychładzać domu."
         if rain is not None and rain > 0:
