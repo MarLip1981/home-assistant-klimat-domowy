@@ -78,10 +78,10 @@
             background:var(--secondary-background-color);font-size:24px;flex-shrink:0}
           .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color)}
           h2{font-size:19px;line-height:1.25;margin:3px 0 0;font-weight:600}
-          .flag{margin:8px 16px 0;padding:12px;border-radius:10px;
-            background:${warning ? "var(--warning-color, #b87516)" : "var(--secondary-background-color)"};
-            color:${warning ? "white" : "var(--primary-text-color)"};font-weight:600}
           .reason{padding:12px 16px 16px;line-height:1.5;color:var(--primary-text-color)}
+          .status{margin:8px 16px 0;padding:8px 10px;border-radius:8px;
+            background:${warning ? "var(--warning-color, #b87516)" : "var(--secondary-background-color)"};
+            color:${warning ? "white" : "var(--secondary-text-color)"};font-size:12px;font-weight:600}
           .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 16px 16px}
           .metric{padding:10px 12px;background:var(--secondary-background-color);border-radius:10px;min-width:0}
           .label{font-size:12px;color:var(--secondary-text-color);margin-bottom:5px}
@@ -94,7 +94,7 @@
             <div class="symbol" aria-hidden="true">⌂</div>
             <div><div class="eyebrow">Klimat Domowy</div><h2>${esc(title)}</h2></div>
           </div>
-          <div class="flag">${esc(title)}</div>
+          <div class="status">${warning ? "WYMAGA UWAGI" : "AKTUALNE ZALECENIE"}</div>
           <div class="reason">${esc(reason)}</div>
           <div class="grid">
             <div class="metric"><div class="label">Temperatura w domu</div><div class="value">${esc(indoorTemp)}</div></div>
