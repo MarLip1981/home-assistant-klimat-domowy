@@ -1,6 +1,6 @@
 # Klimat Domowy
 
-A Home Assistant integration developed for one specific household to provide indoor-air and ventilation guidance with allergy-aware recommendations. It is not intended as a generic HACS release.
+Integracja Home Assistant zapewniająca zalecenia dotyczące wietrzenia i jakości powietrza z uwzględnieniem ryzyka alergicznego. Repozytorium jest przygotowane do instalacji jako własne repozytorium integracji w HACS; domyślne przypisania encji są przygotowane dla konkretnego domu.
 
 ## Goals
 
@@ -30,11 +30,17 @@ Configure each temperature/humidity pair to refer to the same physical room. The
 
 Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap air-pollution index is treated as its usual 1 (best) to 5 (worst) scale; the pollen source uses the state `brak` to mean that no pollen was detected; this is displayed distinctly from unavailable or unknown source data.
 
-## Installation (development)
+## Instalacja przez HACS
 
-Copy `custom_components/klimat_domowy` into `config/custom_components/klimat_domowy`, restart Home Assistant, then add **Klimat Domowy** under Settings → Devices & services → Add integration.
+1. Otwórz **HACS** i menu z trzema kropkami → **Repozytoria niestandardowe**.
+2. Dodaj `https://github.com/MarLip1981/home-assistant-klimat-domowy` i wybierz kategorię **Integracja**.
+3. Otwórz znalezione **Klimat Domowy** i wybierz **Pobierz**.
+4. Uruchom ponownie Home Assistant.
+5. Wejdź w **Ustawienia → Urządzenia i usługi → Dodaj integrację** i wybierz **Klimat Domowy**.
 
-This is a household-specific development repository, not a HACS distribution. The integration starts with the sensor entities already identified for this home, so installation does not require selecting a long list of entities. Source mappings remain editable later in the integration options. Do not treat the current development build as production-ready until it has been tested in the live Home Assistant instance.
+Nie trzeba kopiować plików ręcznie, edytować `configuration.yaml` ani wybierać kilkunastu encji podczas pierwszego uruchomienia. Integracja startuje z przygotowanymi domyślnymi przypisaniami czujników; można je później zmienić w opcjach integracji. Dodanie integracji w interfejsie Home Assistant jest jednorazowym krokiem wymaganym do utworzenia jej wpisu konfiguracyjnego.
+
+To wydanie jest wersją rozwojową 0.2.0 i wymaga pierwszego testu w działającym Home Assistant. Testy CI nie zastępują sprawdzenia działania w konkretnej instalacji.
 
 ## Dashboard card and notifications
 
