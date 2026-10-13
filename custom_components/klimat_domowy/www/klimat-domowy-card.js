@@ -127,8 +127,10 @@ const registerKlimatDomowyCard = () => {
         : String(boiler).toUpperCase() === "HEATING" ? "elevated" : "good";
       const rainNumber = numeric(attrs.rain_last_hour);
       const rainTone = rainNumber === null ? "unknown" : rainNumber > 0 ? "elevated" : "good";
-      const titleTone = warning ? "bad"
-        : title.toLowerCase().includes("brak pełnych danych") ? "unknown"
+      const titleLower = title.toLowerCase();
+      const titleTone = titleLower.includes("brak pełnych danych") || titleLower.includes("sprawdź czujniki") || titleLower.includes("oczekiwanie na dane") ? "unknown"
+        : titleLower.includes("pilnie") || titleLower.includes("ogranicz wietrzenie") || titleLower.includes("zanieczyszczenia") ? "bad"
+        : titleLower.includes("wysokie ryzyko") || titleLower.includes("pyłki wykryte") || titleLower.includes("obserwuj wilgotność") || titleLower.includes("rozważ krótkie wietrzenie") ? "elevated"
         : "good";
       const tile = (label, value, toneName) =>
         `<div class="metric ${toneName}"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
