@@ -15,7 +15,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "klimat-domowy-card.js"
 CARD_URL = "/klimat_domowy/klimat-domowy-card.js"
-CARD_VERSION = "0.2.6"
+CARD_VERSION = "0.2.7"
 VERSIONED_CARD_URL = f"{CARD_URL}?v={CARD_VERSION}"
 _RESOURCE_MARKER = "_lovelace_resource_registered"
 
