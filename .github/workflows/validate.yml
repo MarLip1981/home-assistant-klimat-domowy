@@ -30,6 +30,7 @@ jobs:
 
           paths = [
               Path("custom_components/klimat_domowy/manifest.json"),
+              Path("hacs.json"),
               Path("custom_components/klimat_domowy/translations/pl.json"),
           ]
           for path in paths:
