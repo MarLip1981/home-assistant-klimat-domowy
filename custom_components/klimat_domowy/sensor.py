@@ -504,7 +504,7 @@ async def async_setup_entry(
     @callback
     def _source_changed(event) -> None:
         """Refresh promptly when one of the selected source sensors changes."""
-        coordinator.async_request_refresh()
+        hass.async_create_task(coordinator.async_request_refresh())
 
     if source_entity_ids:
         entry.async_on_unload(
