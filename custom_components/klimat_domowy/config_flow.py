@@ -28,6 +28,12 @@ from .const import (
     DEFAULT_ENTITIES,
     DEFAULT_PM10_LIMIT,
     DEFAULT_PM25_LIMIT,
+    CONF_NOTIFY_ENABLED,
+    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_DELAY,
+    DEFAULT_NOTIFY_ENABLED,
+    DEFAULT_NOTIFY_SERVICE,
+    DEFAULT_NOTIFY_DELAY,
     DOMAIN,
 )
 
@@ -84,6 +90,22 @@ def _options_schema(current: dict) -> vol.Schema:
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=1, max=200, step=1, mode=selector.NumberSelectorMode.BOX
+                )
+            ),
+            vol.Optional(
+                CONF_NOTIFY_ENABLED,
+                default=current.get(CONF_NOTIFY_ENABLED, DEFAULT_NOTIFY_ENABLED),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_NOTIFY_SERVICE,
+                default=current.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE),
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_NOTIFY_DELAY,
+                default=current.get(CONF_NOTIFY_DELAY, DEFAULT_NOTIFY_DELAY),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1, max=60, step=1, mode=selector.NumberSelectorMode.BOX
                 )
             ),
         }
