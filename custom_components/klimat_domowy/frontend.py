@@ -15,7 +15,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "klimat-domowy-card.js"
 CARD_URL = "/klimat_domowy/klimat-domowy-card.js"
-CARD_VERSION = "0.2.7"
+CARD_VERSION = "0.2.8"
 VERSIONED_CARD_URL = f"{CARD_URL}?v={CARD_VERSION}"
 _RESOURCE_MARKER = "_lovelace_resource_registered"
 
@@ -26,8 +26,10 @@ async def _async_register_lovelace_resource(hass: HomeAssistant) -> bool:
     Lovelace resources load after the frontend's custom-element registry setup.
     This avoids the startup race affecting modules injected with add_extra_js_url.
     """
-    lovelace_data: dict[str, Any] | None = hass.data.get("lovelace")
-    resources = lovelace_data.get("resources") if lovelace_data else None
+    lovelace_data: Any = hass.data.get("lovelace")
+    # LovelaceData is a data object, not a dictionary. Access its resource
+    # collection through the attribute provided by Home Assistant.
+    resources = getattr(lovelace_data, "resources", None)
     if resources is None:
         return False
 
