@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
+from .notifications import async_setup_notifications
 
 CARD_URL = "/klimat_domowy/klimat-domowy-card.js?v=0.2.0"
 CARD_PATH = Path(__file__).parent / "www" / "klimat-domowy-card.js"
@@ -29,6 +30,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     domain_data["_frontend_card_url"] = CARD_URL
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    options = dict(entry.data)
+    options.update(entry.options)
+    coordinator = domain_data[entry.entry_id].get("coordinator")
+    if coordinator is not None:
+        async_setup_notifications(hass, entry, coordinator, options)
     return True
 
 
