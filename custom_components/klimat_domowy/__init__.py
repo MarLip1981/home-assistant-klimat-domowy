@@ -4,7 +4,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
-from .frontend import async_setup_frontend
+from .frontend import async_remove_frontend_resource, async_setup_frontend
 from .notifications import async_setup_notifications
 
 
@@ -35,3 +35,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the dashboard resource when the integration entry is deleted."""
+    await async_remove_frontend_resource(hass)
