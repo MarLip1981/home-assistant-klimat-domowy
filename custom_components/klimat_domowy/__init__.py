@@ -17,6 +17,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the configured household climate engine."""
     domain_data = hass.data.setdefault(DOMAIN, {})
+    await async_setup_frontend(hass)
     domain_data[entry.entry_id] = dict(entry.data)
     domain_data[entry.entry_id].update(entry.options)
 
