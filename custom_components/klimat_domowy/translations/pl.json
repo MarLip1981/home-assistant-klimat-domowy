@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Klimat Domowy",
-        "description": "Wybierz encje źródłowe. Nie wszystkie muszą być dostępne od razu; brak danych będzie wyraźnie sygnalizowany.",
+        "description": "Integracja zostanie uruchomiona z domyślnym przypisaniem czujników. W razie potrzeby zmienisz je później w opcjach integracji.",
         "data": {
           "indoor_temperature": "Temperatura — główny czujnik (np. kuchnia)",
           "indoor_humidity": "Wilgotność — główny czujnik (to samo pomieszczenie)",
