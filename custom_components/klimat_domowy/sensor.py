@@ -261,9 +261,16 @@ async def async_setup_entry(
         elif poor_air:
             recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
             reason = "Podwyższone wskazania: " + ", ".join(poor_air_reasons) + ". Wietrz niezbędnie i krótko; rozważ filtrację."
+            if pollen_high:
+                reason += " Dodatkowo źródło pyłkowe wskazuje wysokie ryzyko alergiczne."
+            elif pollen_present:
+                reason += " Dodatkowo wykryto pyłki; poziom ryzyka wymaga weryfikacji."
         elif pollen_high:
             recommendation = "Wietrz krótko — wysokie ryzyko pyłków"
             reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
+        elif pollen_present:
+            recommendation = "Wietrz krótko — pyłki wykryte"
+            reason = "Źródło wskazuje obecność pyłków, ale poziom ryzyka nie jest jednoznaczny. Wietrz krótko i obserwuj własną reakcję."
         elif data_incomplete:
             recommendation = "Sprawdź czujniki — brak pełnych danych"
             reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
@@ -280,12 +287,14 @@ async def async_setup_entry(
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
             reason = "Na zewnątrz nie jest chłodniej niż w domu. Wietrz nadal, gdy wymaga tego jakość powietrza wewnętrznego."
 
-        if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high):
+        if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high or pollen_present):
             conflicts = []
             if poor_air:
                 conflicts.append("podwyższone zanieczyszczenia: " + ", ".join(poor_air_reasons))
             if pollen_high:
                 conflicts.append("wysokie ryzyko pyłków")
+            elif pollen_present:
+                conflicts.append("wykryte pyłki o niejednoznacznym poziomie ryzyka")
             reason += (
                 " Jednocześnie występuje " + " oraz ".join(conflicts) + ". "
                 "Nie ignoruj problemu wilgoci, ale nie zakładaj też, że otwarcie okna jest "
