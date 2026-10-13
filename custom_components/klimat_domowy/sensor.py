@@ -361,7 +361,7 @@ async def async_setup_entry(
         # every available sensor into one long paragraph.
         if hum_in is not None and hum_in >= 70:
             reason = (
-                f"W domu wilgotność wynosi {hum_in:.0f}%, czyli jest bardzo wysoka "
+                f"Najwyższa wilgotność z dostępnych czujników wynosi {hum_in:.0f}%, czyli jest bardzo wysoka "
                 "(warto dążyć do około 40–60%). Włącz wyciąg i sprawdź źródło wilgoci, "
                 "np. gotowanie, suszenie prania lub słabą wentylację."
             )
@@ -382,7 +382,7 @@ async def async_setup_entry(
                     )
         elif hum_in is not None and hum_in >= 60:
             reason = (
-                f"W domu wilgotność wynosi {hum_in:.0f}%, czyli przekracza zalecany "
+                f"Najwyższa wilgotność z dostępnych czujników wynosi {hum_in:.0f}%, czyli przekracza zalecany "
                 "przedział 40–60%. Warto ograniczyć źródła wilgoci i korzystać z wyciągu."
             )
             if abs_humidity_in is not None and abs_humidity_out is not None:
@@ -465,7 +465,7 @@ async def async_setup_entry(
 
         # Add only relevant context, so the explanation remains readable.
         if hum_in is not None and hum_in < 60:
-            reason += f" Wilgotność w domu wynosi {hum_in:.0f}% — mieści się poniżej progu podwyższonej wilgotności."
+            reason += f" Najwyższa wilgotność z dostępnych czujników wynosi {hum_in:.0f}% — jest poniżej progu podwyższonej wilgotności."
         if poor_air and hum_in is not None and hum_in >= 60:
             reason += " Ponieważ powietrze zewnętrzne jest zanieczyszczone, przy wilgoci w domu najpierw użyj wyciągu i ogranicz napływ zanieczyszczeń."
         elif (pollen_high or pollen_present) and hum_in is not None and hum_in >= 60:
