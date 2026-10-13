@@ -1,14 +1,24 @@
 """Tests for pollen-state semantics."""
 
+import importlib.util
 import unittest
+from pathlib import Path
 
-from custom_components.klimat_domowy.pollen import (
-    is_high,
-    is_known,
-    is_low,
-    is_none_detected,
-    is_present,
+MODULE_PATH = (
+    Path(__file__).parents[1]
+    / "custom_components"
+    / "klimat_domowy"
+    / "pollen.py"
 )
+SPEC = importlib.util.spec_from_file_location("klimat_domowy_pollen", MODULE_PATH)
+pollen = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(pollen)
+
+is_high = pollen.is_high
+is_known = pollen.is_known
+is_low = pollen.is_low
+is_none_detected = pollen.is_none_detected
+is_present = pollen.is_present
 
 
 class PollenStateTests(unittest.TestCase):
