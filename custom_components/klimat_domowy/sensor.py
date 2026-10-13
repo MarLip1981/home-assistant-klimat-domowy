@@ -356,6 +356,71 @@ async def async_setup_entry(
                 "niż sama wilgotność względna."
             )
 
+        # The card and notifications need one short, child-friendly explanation:
+        # name the decisive reading and tell the user what it means.
+        if hum_in is not None and hum_in >= 70:
+            if abs_humidity_in is not None and abs_humidity_out is not None:
+                reason = (
+                    f"W domu wilgotność wynosi {hum_in:.0f}%, a na zewnątrz "
+                    f"{abs_humidity_out:.1f} g/m³ wilgoci. Użyj wyciągu; wietrz tylko, "
+                    "jeśli jakość powietrza i pyłki na to pozwalają."
+                )
+            else:
+                reason = f"W domu wilgotność wynosi {hum_in:.0f}%. Włącz wyciąg i sprawdź, skąd bierze się wilgoć."
+        elif hum_in is not None and hum_in >= 60:
+            if abs_humidity_in is not None and abs_humidity_out is not None:
+                if abs_humidity_out <= abs_humidity_in - 1.0:
+                    reason = (
+                        f"W domu wilgotność wynosi {hum_in:.0f}%, a na zewnątrz jest "
+                        f"{abs_humidity_in - abs_humidity_out:.1f} g/m³ mniej wilgoci. "
+                        "Krótkie wietrzenie może pomóc."
+                    )
+                else:
+                    reason = (
+                        f"W domu wilgotność wynosi {hum_in:.0f}%, ale powietrze na zewnątrz "
+                        "nie jest wyraźnie suchsze. Użyj wyciągu zamiast długo wietrzyć."
+                    )
+            else:
+                reason = f"W domu wilgotność wynosi {hum_in:.0f}%, ale brakuje danych, by porównać wilgoć na zewnątrz. Użyj wyciągu."
+        elif poor_air:
+            decisive = []
+            if pm25 is not None and pm25 > pm25_limit:
+                decisive.append(f"PM2.5 {pm25:.1f} µg/m³ (próg {pm25_limit:g})")
+            if pm10 is not None and pm10 > pm10_limit:
+                decisive.append(f"PM10 {pm10:.1f} µg/m³ (próg {pm10_limit:g})")
+            if aqi is not None and aqi >= 3:
+                decisive.append(f"indeks jakości powietrza {aqi:.0f}/5")
+            reason = "Ogranicz wietrzenie: " + ", ".join(decisive) + " wskazuje na podwyższone zanieczyszczenie."
+        elif pollen_high:
+            reason = f"Ryzyko pyłków jest wysokie ({pollen_values[0]}). Wietrz krótko i wybierz porę z niższym ryzykiem."
+        elif pollen_present:
+            reason = f"Źródło wykrywa pyłki ({pollen_values[0]}). Wietrz krótko i obserwuj, czy pojawiają się objawy."
+        elif data_incomplete:
+            missing = []
+            if not valid_temperatures:
+                missing.append("temperatury w domu")
+            if not valid_humidities:
+                missing.append("wilgotności w domu")
+            if temp_out is None:
+                missing.append("temperatury na zewnątrz")
+            reason = "Brakuje odczytu: " + ", ".join(missing) + ". Sprawdź wskazane czujniki."
+        elif temp_out < 10:
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C. Otwórz okna szeroko na 3–5 minut, zamiast długo je uchylać."
+        elif temp_out < 18:
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C. Możesz krótko przewietrzyć, jeśli pyłki i zanieczyszczenia są niskie."
+        elif temp_out < temp_in:
+            reason = f"W domu jest {temp_in:.1f}°C, a na zewnątrz {temp_out:.1f}°C. Chłodniejsze powietrze pomoże obniżyć temperaturę."
+        else:
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C, czyli nie chłodniej niż w domu. Wietrz, gdy potrzebujesz świeżego powietrza, nie dla chłodzenia."
+        if poor_air and hum_in is not None and hum_in >= 60:
+            reason += " Wilgotność w domu też jest podwyższona — użyj wyciągu i rozważ filtrację."
+        elif pollen_high and hum_in is not None and hum_in >= 60:
+            reason += " Wilgotność w domu też jest podwyższona — użyj wyciągu."
+        if not pollution_known:
+            reason += " Brak danych o zanieczyszczeniu nie oznacza, że powietrze jest czyste."
+        if not pollen_known:
+            reason += " Brak danych o pyłkach nie oznacza braku alergenów."
+
         return {
             "recommendation": recommendation,
             "air_quality": air_quality,
