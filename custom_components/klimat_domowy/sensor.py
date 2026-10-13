@@ -132,25 +132,48 @@ def _absolute_humidity(temp_c: float | None, relative_humidity: float | None) ->
 def _pollen_is_high(value: Any) -> bool:
     """Recognize common text and numeric pollen risk levels."""
     text = _text(value)
-    if not text or text in {"unknown", "unavailable", "none", "n/a"}:
+    if not text:
         return False
     if any(word in text for word in ("very high", "extreme", "severe", "bardzo wysok", "wysok")):
         return True
-    # Some integrations expose a 0-5 ordinal risk scale. Only 4-5 are treated
-    # as high here; verify the actual integration's scale before relying on it.
     numeric = _number(text)
     return numeric is not None and numeric >= 4
 
 
-def _pollen_is_present(value: Any) -> bool:
-    """Recognize a non-zero numeric pollen index where supported."""
+def _pollen_is_none_detected(value: Any) -> bool:
+    """Recognize the source integration's explicit 'no pollen detected' state."""
     text = _text(value)
-    if not text or text in {"unknown", "unavailable", "none", "n/a"}:
+    return text in {
+        "brak",
+        "no pollen",
+        "no pollen detected",
+        "none detected",
+        "brak wykrytych pylkow",
+        "nie wykryto pylkow",
+        "nie wykryto pyłków",
+    }
+
+
+def _pollen_is_low(value: Any) -> bool:
+    """Recognize an explicit low pollen-risk state."""
+    text = _text(value)
+    if text in {"low", "very low", "niski", "niskie", "niskiego", "bardzo niski"}:
+        return True
+    return False
+
+
+def _pollen_is_present(value: Any) -> bool:
+    """Recognize numeric non-zero values and explicit moderate/high pollen levels."""
+    text = _text(value)
+    if not text or _pollen_is_none_detected(value) or _pollen_is_low(value):
         return False
     numeric = _number(text)
     if numeric is not None:
         return numeric > 0
-    return any(word in text for word in ("low", "moderate", "medium", "high", "very high", "niski", "umiark", "wysok"))
+    return any(
+        word in text
+        for word in ("moderate", "medium", "umiark", "high", "very high", "wysok")
+    )
 
 
 async def async_setup_entry(
@@ -233,7 +256,9 @@ async def async_setup_entry(
             and _text(value) not in {"", "unknown", "unavailable", "none", "n/a"}
             for value in pollen_values
         )
+        pollen_none_detected = any(_pollen_is_none_detected(value) for value in pollen_values)
         pollen_high = any(_pollen_is_high(value) for value in pollen_values)
+        pollen_low = any(_pollen_is_low(value) for value in pollen_values)
         pollen_present = any(_pollen_is_present(value) for value in pollen_values)
 
         if not pollution_known:
@@ -249,8 +274,12 @@ async def async_setup_entry(
             allergy_risk = "Wysokie"
         elif pollen_present:
             allergy_risk = "Pyłki wykryte — poziom do weryfikacji"
+        elif pollen_none_detected:
+            allergy_risk = "Brak wykrytych pyłków"
+        elif pollen_low:
+            allergy_risk = "Niskie"
         else:
-            allergy_risk = "Niskie według dostępnych danych"
+            allergy_risk = "Poziom ryzyka nieznany"
 
         data_incomplete = not valid_temperatures or not valid_humidities or temp_out is None
         if hum_in is not None and hum_in >= 70:
