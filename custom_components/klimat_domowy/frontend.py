@@ -95,3 +95,4 @@ async def async_remove_frontend_resource(hass: HomeAssistant) -> None:
             if resource.get("url", "").split("?", 1)[0] == CARD_URL:
                 await resources.async_delete_item(resource["id"])
     remove_extra_js_url(hass, VERSIONED_CARD_URL)
+    hass.data.get(DOMAIN, {}).pop("_frontend_setup_started", None)
