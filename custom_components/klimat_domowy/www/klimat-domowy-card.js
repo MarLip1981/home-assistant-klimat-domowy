@@ -68,7 +68,11 @@
       const indoorTemp = this._value("indoorTemperature", " °C");
       const indoorHumidity = this._value("indoorHumidity", "%");
       const outdoorTemp = this._value("outdoorTemperature", " °C");
-      const warning = title.toLowerCase().includes("ogranicz") || title.toLowerCase().includes("pilnie");
+      const lowerTitle = title.toLowerCase();
+      const warning = lowerTitle.includes("ogranicz")
+        || lowerTitle.includes("pilnie")
+        || lowerTitle.includes("wysokie ryzyko")
+        || lowerTitle.includes("sprawdź czujniki");
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block;color:var(--primary-text-color)}
