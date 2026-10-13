@@ -49,7 +49,10 @@
           "boiler_state": "Stan obiegu grzewczego",
           "rain": "Opady w ostatniej godzinie",
           "pm25_limit": "Próg ostrożności PM2.5 (µg/m³)",
-          "pm10_limit": "Próg ostrożności PM10 (µg/m³)"
+          "pm10_limit": "Próg ostrożności PM10 (µg/m³)",
+          "notify_enabled": "Wysyłaj powiadomienia o zmianie zalecenia",
+          "notify_service": "Usługa powiadomień (np. notify.cala_rodzina)",
+          "notify_delay_minutes": "Czas utrzymania zalecenia przed powiadomieniem (minuty)"
         }
       }
     }
