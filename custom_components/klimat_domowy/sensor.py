@@ -312,6 +312,50 @@ async def async_setup_entry(
         if rain is not None and rain > 0:
             reason += " Odnotowano opady — zabezpiecz okna przed deszczem."
 
+        # Every recommendation should explain itself using the actual readings,
+        # not only a generic sentence. Keep raw values and configured thresholds
+        # visible so the user can judge why the advice was produced.
+        def reading(value: float | None, unit: str = "") -> str:
+            return "brak danych" if value is None else f"{value:.1f}{unit}"
+
+        context = [
+            f"temperatura w domu {reading(temp_in, ' °C')}",
+            f"maksymalna z dostępnych temperatur pokojowych {reading(temp_in_max, ' °C')}",
+            f"wilgotność wewnętrzna {reading(hum_in, '%')}",
+            f"temperatura zewnętrzna {reading(temp_out, ' °C')}",
+            f"wilgotność zewnętrzna {reading(hum_out, '%')}",
+            (
+                "różnica wilgoci bezwzględnej (dom minus zewnątrz) "
+                f"{reading(abs_humidity_in - abs_humidity_out, ' g/m³')}"
+                if abs_humidity_in is not None and abs_humidity_out is not None
+                else "różnica wilgoci bezwzględnej: brak danych do porównania"
+            ),
+            f"PM2.5 {reading(pm25, ' µg/m³')} (próg {pm25_limit:g} µg/m³)",
+            f"PM10 {reading(pm10, ' µg/m³')} (próg {pm10_limit:g} µg/m³)",
+            f"indeks jakości powietrza {reading(aqi)} (wartości 3–5 traktowane jako podwyższone)",
+            f"ryzyko pyłkowe: {pollen_values[0] or 'brak danych'}",
+            f"prognoza godzinowa pyłków: {pollen_values[1] or 'brak danych'}",
+        ]
+        reason += "\\n\\nOdczyty, na których oparto zalecenie: " + "; ".join(context) + "."
+        if poor_air:
+            reason += (
+                " Ponieważ co najmniej jeden wskaźnik przekracza przyjęty próg, "
+                "nie wietrz długo ani przy uchylonym oknie; jeśli trzeba wymienić powietrze, "
+                "zrób to krótko i intensywnie, a przy objawach lub bardzo złym powietrzu "
+                "rozważ filtrację i ponowną ocenę odczytów."
+            )
+        elif pollen_high or pollen_present:
+            reason += (
+                " Ze względu na sygnał pyłkowy wybierz moment o niższym ryzyku, jeśli źródło "
+                "pokazuje taką zmianę. Sam odczyt pyłków nie określa indywidualnej reakcji alergicznej."
+            )
+        if hum_in is not None and hum_in >= 60:
+            reason += (
+                " Wilgotność względna powyżej 60% uzasadnia sprawdzenie źródeł wilgoci "
+                "i działania wyciągu; przy porównaniu osuszania ważniejsza jest wilgoć bezwzględna "
+                "niż sama wilgotność względna."
+            )
+
         return {
             "recommendation": recommendation,
             "air_quality": air_quality,
