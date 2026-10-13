@@ -88,50 +88,111 @@ const registerKlimatDomowyCard = () => {
         || lowerTitle.includes("sprawdź czujniki")
         || lowerTitle.includes("pyłki wykryte")
         || lowerTitle.includes("obserwuj wilgotność");
+      const pollenHourly = metric(attrs.pollen_risk_hourly);
+      const pm25Limit = Number(attrs.pollution_threshold_pm2_5 ?? 15);
+      const pm10Limit = Number(attrs.pollution_threshold_pm10 ?? 45);
+      const numeric = (value) => {
+        if (value === null || value === undefined || value === "") return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const tone = (value, good, elevated) => {
+        const n = numeric(value);
+        if (n === null) return "unknown";
+        if (good(n)) return "good";
+        if (elevated(n)) return "elevated";
+        return "bad";
+      };
+      const tempInTone = tone(attrs.indoor_temperature, n => n >= 18 && n <= 26, n => n >= 16 && n <= 28);
+      const tempOutTone = tone(attrs.outdoor_temperature, n => n >= 10 && n <= 25, n => n >= 5 && n <= 32);
+      const humidityInTone = tone(attrs.indoor_humidity, n => n >= 40 && n <= 60, n => n >= 30 && n < 70);
+      const humidityOutTone = tone(attrs.outdoor_humidity, n => n >= 30 && n <= 70, n => n >= 20 && n <= 85);
+      const absDifference = numeric(attrs.absolute_humidity_difference_g_m3);
+      const absInTone = absDifference === null ? "unknown" : absDifference >= 1 ? "good" : absDifference >= 0 ? "elevated" : "bad";
+      const absOutTone = absDifference === null ? "unknown" : absDifference >= 1 ? "good" : absDifference >= 0 ? "elevated" : "bad";
+      const pm25Tone = tone(attrs.pm2_5, n => n <= pm25Limit, n => n <= pm25Limit * 1.5);
+      const pm10Tone = tone(attrs.pm10, n => n <= pm10Limit, n => n <= pm10Limit * 1.5);
+      const aqiTone = tone(attrs.air_quality_index, n => n <= 2, n => n <= 3);
+      const qualityText = String(air).toLowerCase();
+      const airTone = air === "Brak danych" ? "unknown" : qualityText.includes("podwyższone") ? "bad" : "good";
+      const pollenText = String(allergy).toLowerCase();
+      const pollenTone = allergy === "Brak danych" || pollenText.includes("nieznany") ? "unknown"
+        : pollenText.includes("wysokie") ? "bad"
+        : pollenText.includes("wykryte") ? "elevated" : "good";
+      const pollenHourlyText = String(pollenHourly).toLowerCase();
+      const pollenHourlyTone = pollenHourly === "Brak danych" || pollenHourlyText.includes("nieznany") ? "unknown"
+        : pollenHourlyText.includes("wysokie") ? "bad"
+        : pollenHourlyText.includes("wykryte") ? "elevated" : "good";
+      const boilerTone = boiler === "Brak danych" || boiler === "BRAK DANYCH" ? "unknown"
+        : String(boiler).toUpperCase() === "HEATING" ? "elevated" : "good";
+      const rainNumber = numeric(attrs.rain_last_hour);
+      const rainTone = rainNumber === null ? "unknown" : rainNumber > 0 ? "elevated" : "good";
+      const titleTone = warning ? "bad"
+        : title.toLowerCase().includes("brak pełnych danych") ? "unknown"
+        : "good";
+      const tile = (label, value, toneName) =>
+        `<div class="metric ${toneName}"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
       const markup = `
         <style>
           :host{display:block;color:var(--primary-text-color)}
           ha-card{overflow:hidden;border-radius:var(--ha-card-border-radius,12px)}
-          .head{display:flex;align-items:center;gap:12px;padding:16px 16px 8px}
+          .head{display:flex;align-items:center;gap:12px;padding:16px;color:var(--primary-text-color)}
+          .head.good{background:color-mix(in srgb,var(--success-color,#2e7d32) 18%,var(--card-background-color))}
+          .head.elevated{background:color-mix(in srgb,var(--warning-color,#edb62b) 25%,var(--card-background-color))}
+          .head.bad{background:color-mix(in srgb,var(--error-color,#c62828) 24%,var(--card-background-color))}
+          .head.unknown{background:var(--secondary-background-color)}
           .symbol{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;
-            background:var(--secondary-background-color);font-size:24px;flex-shrink:0}
-          .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--secondary-text-color)}
+            background:rgba(127,127,127,.12);font-size:24px;flex-shrink:0}
+          .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
           h2{font-size:19px;line-height:1.25;margin:3px 0 0;font-weight:600}
-          .reason{padding:12px 16px 16px;line-height:1.5;color:var(--primary-text-color)}
-          .status{margin:8px 16px 0;padding:8px 10px;border-radius:8px;
-            background:${warning ? "var(--warning-color, #b87516)" : "var(--secondary-background-color)"};
-            color:${warning ? "white" : "var(--secondary-text-color)"};font-size:12px;font-weight:600}
+          .reason{padding:12px 16px 16px;line-height:1.45;color:var(--primary-text-color)}
+          .status{margin:0 16px 12px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:700}
+          .status.good{background:color-mix(in srgb,var(--success-color,#2e7d32) 18%,var(--card-background-color))}
+          .status.elevated{background:color-mix(in srgb,var(--warning-color,#edb62b) 25%,var(--card-background-color))}
+          .status.bad{background:color-mix(in srgb,var(--error-color,#c62828) 20%,var(--card-background-color))}
+          .status.unknown{background:var(--secondary-background-color);color:var(--secondary-text-color)}
+          .section{padding:0 16px 8px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--secondary-text-color)}
           .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 16px 16px}
-          .metric{padding:10px 12px;background:var(--secondary-background-color);border-radius:10px;min-width:0}
+          .metric{padding:10px 12px;border-radius:10px;min-width:0;border:1px solid transparent}
+          .metric.good{background:color-mix(in srgb,var(--success-color,#2e7d32) 14%,var(--card-background-color));border-color:color-mix(in srgb,var(--success-color,#2e7d32) 28%,transparent)}
+          .metric.elevated{background:color-mix(in srgb,var(--warning-color,#edb62b) 20%,var(--card-background-color));border-color:color-mix(in srgb,var(--warning-color,#edb62b) 36%,transparent)}
+          .metric.bad{background:color-mix(in srgb,var(--error-color,#c62828) 17%,var(--card-background-color));border-color:color-mix(in srgb,var(--error-color,#c62828) 32%,transparent)}
+          .metric.unknown{background:var(--secondary-background-color);border-color:var(--divider-color,#777);border-style:dashed}
           .label{font-size:12px;color:var(--secondary-text-color);margin-bottom:5px}
           .value{font-size:15px;font-weight:600;overflow-wrap:anywhere}
           .foot{padding:0 16px 14px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
-          @media(max-width:360px){h2{font-size:17px}.grid{grid-template-columns:1fr}}
+          @media(max-width:360px){h2{font-size:17px}.grid{gap:6px;padding-left:10px;padding-right:10px}.metric{padding:9px}}
         </style>
         <ha-card>
-          <div class="head">
+          <div class="head ${titleTone}">
             <div class="symbol" aria-hidden="true">⌂</div>
             <div><div class="eyebrow">Klimat Domowy</div><h2>${esc(title)}</h2></div>
           </div>
-          <div class="status">${warning ? "WYMAGA UWAGI" : "AKTUALNE ZALECENIE"}</div>
           <div class="reason">${esc(reason)}</div>
+          <div class="status ${titleTone}">${titleTone === "good" ? "WARUNKI SPRZYJAJĄ" : titleTone === "elevated" ? "ZACHOWAJ OSTROŻNOŚĆ" : titleTone === "bad" ? "WYMAGA UWAGI" : "BRAK PEŁNYCH DANYCH"}</div>
+          <div class="section">DOM I ZEWNĄTRZ</div>
           <div class="grid">
-            <div class="metric"><div class="label">Temperatura w domu</div><div class="value">${esc(indoorTemp)}</div></div>
-            <div class="metric"><div class="label">Wilgotność w domu</div><div class="value">${esc(indoorHumidity)}</div></div>
-            <div class="metric"><div class="label">Temperatura na zewnątrz</div><div class="value">${esc(outdoorTemp)}</div></div>
-            <div class="metric"><div class="label">Jakość powietrza</div><div class="value">${esc(air)}</div></div>
-            <div class="metric"><div class="label">Ryzyko pyłkowe</div><div class="value">${esc(allergy)}</div></div>
-            <div class="metric"><div class="label">PM2.5</div><div class="value">${esc(pm25)}</div></div>
-            <div class="metric"><div class="label">PM10</div><div class="value">${esc(pm10)}</div></div>
-            <div class="metric"><div class="label">Indeks jakości powietrza</div><div class="value">${esc(aqi)}</div></div>
-            <div class="metric"><div class="label">Wilgotność na zewnątrz</div><div class="value">${esc(outdoorHumidity)}</div></div>
-            <div class="metric"><div class="label">Wilgoć bezwzględna — dom</div><div class="value">${esc(indoorAbs)}</div></div>
-            <div class="metric"><div class="label">Wilgoć bezwzględna — zewnątrz</div><div class="value">${esc(outdoorAbs)}</div></div>
-            <div class="metric"><div class="label">Obieg grzewczy</div><div class="value">${esc(boiler)}</div></div>
-            <div class="metric"><div class="label">Opady w ostatniej godzinie</div><div class="value">${esc(rain)}</div></div>
+            ${tile("Temperatura w domu", indoorTemp, tempInTone)}
+            ${tile("Temperatura na zewnątrz", outdoorTemp, tempOutTone)}
+            ${tile("Wilgotność w domu", indoorHumidity, humidityInTone)}
+            ${tile("Wilgotność na zewnątrz", outdoorHumidity, humidityOutTone)}
+            ${tile("Wilgoć bezwzględna — dom", indoorAbs, absInTone)}
+            ${tile("Wilgoć bezwzględna — zewnątrz", outdoorAbs, absOutTone)}
           </div>
-          <div class="foot">Odczyty źródłowe są dostępne w atrybutach zalecenia. Brak odczytu nie oznacza czystego powietrza. Kierunek przepływu wentylacji nie jest mierzony.</div>
+          <div class="section">POZOSTAŁE ODCZYTY</div>
+          <div class="grid">
+            ${tile("Jakość powietrza", air, airTone)}
+            ${tile("Ryzyko pyłkowe", allergy, pollenTone)}
+            ${tile("PM2.5", pm25, pm25Tone)}
+            ${tile("PM10", pm10, pm10Tone)}
+            ${tile("Indeks jakości powietrza", aqi, aqiTone)}
+            ${tile("Pyłki — prognoza godzinowa", pollenHourly, pollenHourlyTone)}
+            ${tile("Obieg grzewczy", boiler, boilerTone)}
+            ${tile("Opady w ostatniej godzinie", rain, rainTone)}
+          </div>
+          <div class="foot">Zielony — dobrze · żółty — podwyższony poziom · czerwony — źle · szary — brak odczytu. Brak danych nie oznacza czystego powietrza.</div>
         </ha-card>`;
+
       if (markup !== this._lastMarkup) {
         this.shadowRoot.innerHTML = markup;
         this._lastMarkup = markup;
