@@ -336,7 +336,7 @@ async def async_setup_entry(
             f"ryzyko pyłkowe: {pollen_values[0] or 'brak danych'}",
             f"prognoza godzinowa pyłków: {pollen_values[1] or 'brak danych'}",
         ]
-        reason += "\\n\\nOdczyty, na których oparto zalecenie: " + "; ".join(context) + "."
+        reason += "\n\nOdczyty, na których oparto zalecenie: " + "; ".join(context) + "."
         if poor_air:
             reason += (
                 " Ponieważ co najmniej jeden wskaźnik przekracza przyjęty próg, "
