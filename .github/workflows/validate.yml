@@ -18,6 +18,8 @@ jobs:
           python-version: "3.12"
       - name: Check Python syntax
         run: python -m compileall -q custom_components/klimat_domowy
+      - name: Run pollen-state unit tests
+        run: python -m unittest discover -s tests -v
       - name: Check JavaScript syntax
         run: node --check custom_components/klimat_domowy/www/klimat-domowy-card.js
       - name: Validate JSON files
