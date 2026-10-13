@@ -1,4 +1,5 @@
 /* Klimat Domowy — self-contained Lovelace card. */
+(() => {
 const registerKlimatDomowyCard = () => {
   const DEFAULTS = {
     recommendation: "sensor.klimat_domowy_zalecenie_wietrzenia",
@@ -283,3 +284,5 @@ if (document.readyState === "complete") {
 } else {
   window.addEventListener("load", registerKlimatDomowyCard, { once: true });
 }
+
+})();
