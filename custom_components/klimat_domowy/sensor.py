@@ -16,6 +16,16 @@ from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
 )
 
+from .pollen import (
+    is_high as _pollen_is_high,
+    is_known as _pollen_is_known,
+    is_low as _pollen_is_low,
+    is_none_detected as _pollen_is_none_detected,
+    is_present as _pollen_is_present,
+    number as _number,
+    text as _text,
+)
+
 from .const import (
     CONF_AQI,
     CONF_BOILER_STATE,
@@ -101,24 +111,6 @@ SENSORS: tuple[KlimatSensorDescription, ...] = (
 )
 
 
-def _number(value: Any) -> float | None:
-    """Parse a numeric sensor state safely."""
-    if value is None:
-        return None
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError):
-        return None
-    return parsed if parsed == parsed and abs(parsed) != float("inf") else None
-
-
-def _text(value: Any) -> str:
-    """Normalize text states."""
-    if value is None:
-        return ""
-    return str(value).strip().lower().replace("_", " ").replace("-", " ")
-
-
 def _absolute_humidity(temp_c: float | None, relative_humidity: float | None) -> float | None:
     """Calculate absolute humidity in g/m³ from temperature and relative humidity."""
     if temp_c is None or relative_humidity is None:
@@ -127,53 +119,6 @@ def _absolute_humidity(temp_c: float | None, relative_humidity: float | None) ->
         return None
     vapor_pressure = 6.112 * math.exp((17.67 * temp_c) / (temp_c + 243.5))
     return 216.74 * vapor_pressure * (relative_humidity / 100) / (273.15 + temp_c)
-
-
-def _pollen_is_high(value: Any) -> bool:
-    """Recognize common text and numeric pollen risk levels."""
-    text = _text(value)
-    if not text:
-        return False
-    if any(word in text for word in ("very high", "extreme", "severe", "bardzo wysok", "wysok")):
-        return True
-    numeric = _number(text)
-    return numeric is not None and numeric >= 4
-
-
-def _pollen_is_none_detected(value: Any) -> bool:
-    """Recognize the source integration's explicit 'no pollen detected' state."""
-    text = _text(value)
-    return text in {
-        "brak",
-        "no pollen",
-        "no pollen detected",
-        "none detected",
-        "brak wykrytych pylkow",
-        "nie wykryto pylkow",
-        "nie wykryto pyłków",
-    }
-
-
-def _pollen_is_low(value: Any) -> bool:
-    """Recognize an explicit low pollen-risk state."""
-    text = _text(value)
-    if text in {"low", "very low", "niski", "niskie", "niskiego", "bardzo niski"}:
-        return True
-    return False
-
-
-def _pollen_is_present(value: Any) -> bool:
-    """Recognize numeric non-zero values and explicit moderate/high pollen levels."""
-    text = _text(value)
-    if not text or _pollen_is_none_detected(value) or _pollen_is_low(value):
-        return False
-    numeric = _number(text)
-    if numeric is not None:
-        return numeric > 0
-    return any(
-        word in text
-        for word in ("moderate", "medium", "umiark", "high", "very high", "wysok")
-    )
 
 
 async def async_setup_entry(
@@ -251,11 +196,7 @@ async def async_setup_entry(
             poor_air_reasons.append(f"indeks jakości powietrza {aqi:g}")
         poor_air = bool(poor_air_reasons)
 
-        pollen_known = any(
-            value is not None
-            and _text(value) not in {"", "unknown", "unavailable", "none", "n/a"}
-            for value in pollen_values
-        )
+        pollen_known = any(_pollen_is_known(value) for value in pollen_values)
         pollen_none_detected = any(_pollen_is_none_detected(value) for value in pollen_values)
         pollen_high = any(_pollen_is_high(value) for value in pollen_values)
         pollen_low = any(_pollen_is_low(value) for value in pollen_values)
@@ -318,15 +259,15 @@ async def async_setup_entry(
                     "porównania ilości wilgoci w powietrzu wewnątrz i na zewnątrz. "
                     "Nie zakładaj, że samo otwarcie okna osuszy dom."
                 )
-        elif data_incomplete:
-            recommendation = "Sprawdź czujniki — brak pełnych danych"
-            reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
         elif poor_air:
             recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
             reason = "Podwyższone wskazania: " + ", ".join(poor_air_reasons) + ". Wietrz niezbędnie i krótko; rozważ filtrację."
         elif pollen_high:
             recommendation = "Wietrz krótko — wysokie ryzyko pyłków"
             reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
+        elif data_incomplete:
+            recommendation = "Sprawdź czujniki — brak pełnych danych"
+            reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
             reason = "Chłodna pogoda: zwykle wystarczy około 3–5 minut intensywnego wietrzenia."
