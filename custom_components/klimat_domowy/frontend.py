@@ -6,7 +6,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.frontend import add_extra_js_url, remove_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
@@ -84,3 +84,14 @@ async def _async_register_resource_when_ready(hass: HomeAssistant) -> None:
         "Could not register the Klimat Domowy card automatically because "
         "Lovelace resources did not become available."
     )
+
+
+async def async_remove_frontend_resource(hass: HomeAssistant) -> None:
+    """Remove the Lovelace resource when the config entry is permanently deleted."""
+    lovelace = hass.data.get("lovelace")
+    resources = getattr(lovelace, "resources", None) if lovelace is not None else None
+    if resources is not None and resources.loaded and getattr(lovelace, "mode", "storage") == "storage":
+        for resource in list(resources.async_items()):
+            if resource.get("url", "").split("?", 1)[0] == CARD_URL:
+                await resources.async_delete_item(resource["id"])
+    remove_extra_js_url(hass, VERSIONED_CARD_URL)
