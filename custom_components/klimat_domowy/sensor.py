@@ -362,6 +362,7 @@ async def async_setup_entry(
     coordinator = DataUpdateCoordinator(
         hass,
         logger=logging.getLogger(__name__),
+        config_entry=entry,
         name="Klimat Domowy",
         update_method=async_update_data,
         update_interval=SCAN_INTERVAL,
