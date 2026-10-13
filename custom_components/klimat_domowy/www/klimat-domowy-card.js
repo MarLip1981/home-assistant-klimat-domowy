@@ -69,6 +69,18 @@
       const indoorTemp = this._value("indoorTemperature", " °C");
       const indoorHumidity = this._value("indoorHumidity", "%");
       const outdoorTemp = this._value("outdoorTemperature", " °C");
+      const attrs = recommendation?.attributes || {};
+      const metric = (value, suffix = "") =>
+        value === null || value === undefined || value === "" ? "Brak danych" : `${value}${suffix}`;
+      const pm25 = metric(attrs.pm2_5, " µg/m³");
+      const pm10 = metric(attrs.pm10, " µg/m³");
+      const aqi = metric(attrs.air_quality_index);
+      const outdoorHumidity = metric(attrs.outdoor_humidity, "%");
+      const boiler = metric(attrs.boiler_state);
+      const rain = metric(attrs.rain_last_hour, " mm");
+      const indoorAbs = metric(attrs.indoor_absolute_humidity_g_m3, " g/m³");
+      const outdoorAbs = metric(attrs.outdoor_absolute_humidity_g_m3, " g/m³");
+      const pollen = metric(attrs.pollen_risk);
       const lowerTitle = title.toLowerCase();
       const warning = lowerTitle.includes("ogranicz")
         || lowerTitle.includes("pilnie")
@@ -109,8 +121,16 @@
             <div class="metric"><div class="label">Temperatura na zewnątrz</div><div class="value">${esc(outdoorTemp)}</div></div>
             <div class="metric"><div class="label">Jakość powietrza</div><div class="value">${esc(air)}</div></div>
             <div class="metric"><div class="label">Ryzyko pyłkowe</div><div class="value">${esc(allergy)}</div></div>
+            <div class="metric"><div class="label">PM2.5</div><div class="value">${esc(pm25)}</div></div>
+            <div class="metric"><div class="label">PM10</div><div class="value">${esc(pm10)}</div></div>
+            <div class="metric"><div class="label">Indeks jakości powietrza</div><div class="value">${esc(aqi)}</div></div>
+            <div class="metric"><div class="label">Wilgotność na zewnątrz</div><div class="value">${esc(outdoorHumidity)}</div></div>
+            <div class="metric"><div class="label">Wilgoć bezwzględna — dom</div><div class="value">${esc(indoorAbs)}</div></div>
+            <div class="metric"><div class="label">Wilgoć bezwzględna — zewnątrz</div><div class="value">${esc(outdoorAbs)}</div></div>
+            <div class="metric"><div class="label">Obieg grzewczy</div><div class="value">${esc(boiler)}</div></div>
+            <div class="metric"><div class="label">Opady w ostatniej godzinie</div><div class="value">${esc(rain)}</div></div>
           </div>
-          <div class="foot">Zalecenia pomocnicze, nie medyczne. Kierunek przepływu wentylacji nie jest mierzony.</div>
+          <div class="foot">Odczyty źródłowe są dostępne w atrybutach zalecenia. Brak odczytu nie oznacza czystego powietrza. Kierunek przepływu wentylacji nie jest mierzony.</div>
         </ha-card>`;
       if (markup !== this._lastMarkup) {
         this.shadowRoot.innerHTML = markup;
