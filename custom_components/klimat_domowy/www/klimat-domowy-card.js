@@ -73,7 +73,9 @@
       const warning = lowerTitle.includes("ogranicz")
         || lowerTitle.includes("pilnie")
         || lowerTitle.includes("wysokie ryzyko")
-        || lowerTitle.includes("sprawdź czujniki");
+        || lowerTitle.includes("sprawdź czujniki")
+        || lowerTitle.includes("pyłki wykryte")
+        || lowerTitle.includes("obserwuj wilgotność");
       const markup = `
         <style>
           :host{display:block;color:var(--primary-text-color)}
