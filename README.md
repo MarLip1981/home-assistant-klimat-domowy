@@ -4,7 +4,7 @@ A Home Assistant integration developed for one specific household to provide ind
 
 ## Goals
 
-- Configure source entities through the Home Assistant UI; no `configuration.yaml` edits.
+- Install with the household's preconfigured sensor mapping; source entities can be changed later in the Home Assistant UI. No `configuration.yaml` edits.
 - Publish one shared recommendation model for dashboard cards and automations.
 - Handle unavailable or unknown source entities conservatively.
 - Keep phone/device notification targets outside the integration so the engine remains independent of a particular phone.
@@ -28,13 +28,13 @@ The recommendation sensor exposes a `reason` attribute plus source readings, roo
 
 Configure each temperature/humidity pair to refer to the same physical room. The first pair retains the existing default entity selections; the second and third pairs are optional and can be assigned to rooms such as the living room and bathroom. The current engine does not measure ventilation flow direction and cannot confirm that a vent is extracting air.
 
-Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap air-pollution index is treated as its usual 1 (best) to 5 (worst) scale; the exact pollen entity state format must be checked against the installed integration before treating its risk classification as definitive.
+Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap air-pollution index is treated as its usual 1 (best) to 5 (worst) scale; the pollen source uses the state `brak` to mean that no pollen was detected; this is displayed distinctly from unavailable or unknown source data.
 
 ## Installation (development)
 
 Copy `custom_components/klimat_domowy` into `config/custom_components/klimat_domowy`, restart Home Assistant, then add **Klimat Domowy** under Settings → Devices & services → Add integration.
 
-This is a household-specific development repository, not a HACS distribution. The integration is configured through the Home Assistant UI so source entities can be mapped to the sensors actually installed in this home. Do not treat the current development build as production-ready until it has been tested in the live Home Assistant instance.
+This is a household-specific development repository, not a HACS distribution. The integration starts with the sensor entities already identified for this home, so installation does not require selecting a long list of entities. Source mappings remain editable later in the integration options. Do not treat the current development build as production-ready until it has been tested in the live Home Assistant instance.
 
 ## Phone replacement and notifications
 
