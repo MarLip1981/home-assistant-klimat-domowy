@@ -46,7 +46,7 @@ def async_setup_notifications(
 
     initial_data = coordinator.data or {}
     last_seen = initial_data.get("recommendation")
-    last_notified = last_seen
+    last_notified = None
     cancel_timer = None
 
     async def send_if_unchanged(expected: str) -> None:
@@ -54,10 +54,16 @@ def async_setup_notifications(
         data = coordinator.data or {}
         if data.get("recommendation") != expected or expected == last_notified:
             return
-        if not hass.services.has_service("notify", service):
-            _LOGGER.warning(
-                "Klimat Domowy: notify service notify.%s is not registered; no notification sent",
-                service,
+        legacy_service_available = hass.services.has_service("notify", service)
+        notify_entity_available = (
+            service_value.startswith("notify.")
+            and hass.states.get(service_value) is not None
+            and hass.services.has_service("notify", "send_message")
+        )
+        if not legacy_service_available and not notify_entity_available:
+            _LOGGER.error(
+                "Klimat Domowy: target %r is unavailable. Check the notify target in integration options.",
+                service_value,
             )
             return
 
@@ -79,12 +85,28 @@ def async_setup_notifications(
             f"Na zewnątrz: {fmt(temp_out, ' °C')}.\n"
             "Kierunek przepływu wentylacji nie jest mierzony."
         )
-        await hass.services.async_call(
-            "notify",
-            service,
-            {"title": f"Klimat Domowy: {expected}", "message": message},
-            blocking=False,
-        )
+        try:
+            if legacy_service_available:
+                await hass.services.async_call(
+                    "notify",
+                    service,
+                    {"title": f"Klimat Domowy: {expected}", "message": message},
+                    blocking=True,
+                )
+            else:
+                await hass.services.async_call(
+                    "notify",
+                    "send_message",
+                    {
+                        "entity_id": service_value,
+                        "title": f"Klimat Domowy: {expected}",
+                        "message": message,
+                    },
+                    blocking=True,
+                )
+        except Exception:
+            _LOGGER.exception("Klimat Domowy: failed to send notification through %s", service_value)
+            return
         last_notified = expected
 
     @callback
@@ -108,6 +130,20 @@ def async_setup_notifications(
         )
 
     remove_listener = coordinator.async_add_listener(coordinator_updated)
+
+    # Send the initial recommendation too, once it has remained stable for the
+    # configured delay. Otherwise a new installation can stay silent forever
+    # if the recommendation does not change after setup.
+    initial_recommendation = (coordinator.data or {}).get("recommendation")
+    if initial_recommendation:
+        def initial_timer_fired(_now) -> None:
+            nonlocal cancel_timer
+            cancel_timer = None
+            hass.async_create_task(send_if_unchanged(initial_recommendation))
+
+        cancel_timer = async_call_later(
+            hass, timedelta(minutes=delay_minutes), initial_timer_fired
+        )
 
     @callback
     def cleanup() -> None:
