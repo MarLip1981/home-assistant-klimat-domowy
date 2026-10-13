@@ -46,6 +46,12 @@ def async_setup_notifications(
 
     initial_data = coordinator.data or {}
     last_seen = initial_data.get("recommendation")
+    _LOGGER.info(
+        "Klimat Domowy: notifications enabled; target=%s, delay=%s min, initial recommendation=%r",
+        service_value,
+        delay_minutes,
+        last_seen,
+    )
     last_notified = None
     cancel_timer = None
 
@@ -86,14 +92,10 @@ def async_setup_notifications(
             "Kierunek przepływu wentylacji nie jest mierzony."
         )
         try:
-            if legacy_service_available:
-                await hass.services.async_call(
-                    "notify",
-                    service,
-                    {"title": f"Klimat Domowy: {expected}", "message": message},
-                    blocking=True,
-                )
-            else:
+            # Prefer the entity-based action when the configured notify entity
+            # exists. A legacy service with the same name can also be present,
+            # but is not the reliable target for modern notify entities/groups.
+            if notify_entity_available:
                 await hass.services.async_call(
                     "notify",
                     "send_message",
@@ -104,10 +106,24 @@ def async_setup_notifications(
                     },
                     blocking=True,
                 )
+            elif legacy_service_available:
+                await hass.services.async_call(
+                    "notify",
+                    service,
+                    {"title": f"Klimat Domowy: {expected}", "message": message},
+                    blocking=True,
+                )
+            else:
+                _LOGGER.error(
+                    "Klimat Domowy: no usable notify entity/service for %r",
+                    service_value,
+                )
+                return
         except Exception:
             _LOGGER.exception("Klimat Domowy: failed to send notification through %s", service_value)
             return
         last_notified = expected
+        _LOGGER.info("Klimat Domowy: notification sent through %s", service_value)
 
     @callback
     def coordinator_updated() -> None:
@@ -143,6 +159,10 @@ def async_setup_notifications(
 
         cancel_timer = async_call_later(
             hass, timedelta(minutes=delay_minutes), initial_timer_fired
+        )
+        _LOGGER.info(
+            "Klimat Domowy: initial notification scheduled in %s min",
+            delay_minutes,
         )
 
     @callback
