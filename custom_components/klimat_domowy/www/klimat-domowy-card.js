@@ -211,7 +211,10 @@ const registerKlimatDomowyCard = () => {
   }
 };
 
-// Defer registration until Home Assistant has installed its scoped custom-element registry.
+// Register immediately for dashboards that are already being built, then retry
+// after Home Assistant's startup/polyfill phase. On affected frontend versions,
+// the first definition can be lost when the scoped registry replaces the native one.
+registerKlimatDomowyCard();
 if (document.readyState === "complete") {
   window.setTimeout(registerKlimatDomowyCard, 0);
 } else {
