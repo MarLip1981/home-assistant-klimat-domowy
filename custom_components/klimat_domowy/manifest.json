@@ -7,7 +7,8 @@
   "config_flow": true,
   "dependencies": [
     "http",
-    "frontend"
+    "frontend",
+    "lovelace"
   ],
   "documentation": "https://github.com/MarLip1981/home-assistant-klimat-domowy",
   "iot_class": "calculated",
