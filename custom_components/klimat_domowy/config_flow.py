@@ -101,15 +101,12 @@ class KlimatDomowyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if self._async_current_entries():
             return self.async_abort(reason="already_configured")
 
-        if user_input is not None:
-            return self.async_create_entry(
-                title="Klimat Domowy",
-                data=user_input,
-            )
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(_entity_schema(DEFAULT_ENTITIES)),
+        # Install with the household's known sensor mapping. The user should not
+        # have to select fifteen entities just to get the integration running.
+        # All mappings remain editable later in the integration's Options UI.
+        return self.async_create_entry(
+            title="Klimat Domowy",
+            data=dict(DEFAULT_ENTITIES),
         )
 
     @staticmethod
