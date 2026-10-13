@@ -1,5 +1,5 @@
 /* Klimat Domowy — self-contained Lovelace card. */
-(() => {
+const registerKlimatDomowyCard = () => {
   const DEFAULTS = {
     recommendation: "sensor.klimat_domowy_zalecenie_wietrzenia",
     airQuality: "sensor.klimat_domowy_ocena_powietrza_zewnetrznego",
@@ -209,4 +209,11 @@
       documentationURL: "https://github.com/MarLip1981/home-assistant-klimat-domowy",
     });
   }
-})();
+};
+
+// Defer registration until Home Assistant has installed its scoped custom-element registry.
+if (document.readyState === "complete") {
+  window.setTimeout(registerKlimatDomowyCard, 0);
+} else {
+  window.addEventListener("load", registerKlimatDomowyCard, { once: true });
+}
