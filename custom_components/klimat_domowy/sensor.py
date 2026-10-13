@@ -23,7 +23,6 @@ from .pollen import (
     is_none_detected as _pollen_is_none_detected,
     is_present as _pollen_is_present,
     number as _number,
-    text as _text,
 )
 
 from .const import (
