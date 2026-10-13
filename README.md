@@ -7,12 +7,12 @@ A Home Assistant integration developed for one specific household to provide ind
 - Install with the household's preconfigured sensor mapping; source entities can be changed later in the Home Assistant UI. No `configuration.yaml` edits.
 - Publish one shared recommendation model for dashboard cards and automations.
 - Handle unavailable or unknown source entities conservatively.
-- Keep phone/device notification targets outside the integration so the engine remains independent of a particular phone.
+- Send stable-recommendation notifications directly from the integration, with a configurable Home Assistant notify service.
 - Extend later with ESPHome/ESP32 air-quality sensors.
 
 ## Current development status
 
-Development version **0.1.0**. The development implementation provides a config flow, configurable source entities, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, and shared output sensors. It is an early development build and has not yet been tested in the user's live Home Assistant instance.
+Development version **0.2.0**. The development implementation provides preconfigured source entities, editable options, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, shared output sensors, a self-registering dashboard card, and built-in stable-recommendation notifications. It is an early development build and has not yet been tested in the user's live Home Assistant instance.
 
 Expected entity IDs after setup:
 
@@ -24,7 +24,7 @@ Expected entity IDs after setup:
 - `sensor.klimat_domowy_temperatura_zewnetrzna`
 - `sensor.klimat_domowy_stan_obiegu_grzewczego`
 
-The recommendation sensor exposes a `reason` attribute plus source readings, room-by-room readings, indoor/outdoor absolute humidity estimates, and data-availability flags. Indoor temperature is averaged across available configured sensors; the highest available indoor relative humidity is used for conservative moisture warnings. Absolute-humidity comparison uses only rooms with both temperature and humidity configured. Dashboard cards and automations should read these entities rather than reimplementing the decision logic.
+The recommendation sensor exposes a `reason` attribute plus source readings, room-by-room readings, indoor/outdoor absolute humidity estimates, and data-availability flags. Indoor temperature is averaged across available configured sensors; the highest available indoor relative humidity is used for conservative moisture warnings. Absolute-humidity comparison uses only rooms with both temperature and humidity configured. The built-in dashboard card and notification system read the same coordinator output rather than reimplementing the decision logic.
 
 Configure each temperature/humidity pair to refer to the same physical room. The first pair retains the existing default entity selections; the second and third pairs are optional and can be assigned to rooms such as the living room and bathroom. The current engine does not measure ventilation flow direction and cannot confirm that a vent is extracting air.
 
@@ -36,9 +36,9 @@ Copy `custom_components/klimat_domowy` into `config/custom_components/klimat_dom
 
 This is a household-specific development repository, not a HACS distribution. The integration starts with the sensor entities already identified for this home, so installation does not require selecting a long list of entities. Source mappings remain editable later in the integration options. Do not treat the current development build as production-ready until it has been tested in the live Home Assistant instance.
 
-## Phone replacement and notifications
+## Dashboard card and notifications
 
-The integration itself does not send notifications and does not store phone IDs. Configure a Home Assistant automation to use the shared recommendation sensor and the notification service/group you maintain (currently `notify.cala_rodzina`). If that service is a manually configured group of mobile-app notify services, update its membership when phones are replaced.
+The `Klimat Domowy` card is registered by the integration and should appear in the dashboard's Add card picker after the frontend loads the module. No separate Lovelace resource or manual card YAML is required. The card editor starts with the integration's output entities and allows mapping changes if entity IDs differ. Notifications are handled by the integration itself: the default target is `notify.cala_rodzina`, the default stability delay is 10 minutes, and both can be changed in the integration options. Notifications are sent only when a new recommendation remains unchanged for the configured delay; source attribute updates alone do not trigger another notification.
 
 ## Safety notes
 
