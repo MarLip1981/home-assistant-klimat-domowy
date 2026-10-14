@@ -234,18 +234,92 @@ async def async_setup_entry(
         else:
             season = "jesień"
 
+        # Give an explicit outdoor-air verdict. Never ask the user to decide whether
+        # the air is clean; state exactly what the configured sensors can establish.
+        if poor_air:
+            outdoor_air_verdict = (
+                f"Powietrze na zewnątrz: NIEKORZYSTNE — {', '.join(poor_air_reasons)} "
+                f"(przekroczony próg ostrzegawczy)."
+            )
+        elif pollution_known:
+            outdoor_air_verdict = (
+                "Powietrze na zewnątrz: brak przekroczeń w dostępnych pomiarach "
+                "(to nie jest gwarancja pełnej czystości powietrza)."
+            )
+        else:
+            outdoor_air_verdict = (
+                "Powietrze na zewnątrz: NIE MOŻNA OCENIĆ — brak aktualnych "
+                "pomiarów zanieczyszczeń."
+            )
+
+        if pollen_high:
+            outdoor_pollen_verdict = "Ryzyko pyłków: wysokie."
+        elif pollen_present:
+            outdoor_pollen_verdict = "Ryzyko pyłków: wykryto pyłki; zalecana ostrożność."
+        elif pollen_low:
+            outdoor_pollen_verdict = "Ryzyko pyłków: niskie według dostępnych danych."
+        elif pollen_none_detected:
+            outdoor_pollen_verdict = "Ryzyko pyłków: źródło nie wykrywa obecnie pyłków."
+        else:
+            outdoor_pollen_verdict = "Ryzyko pyłków: brak aktualnych danych."
+
+        humidity_can_be_reduced = (
+            abs_humidity_in is not None
+            and abs_humidity_out is not None
+            and abs_humidity_out <= abs_humidity_in - 1.0
+        )
+        outdoor_air_favorable = (
+            pollution_known
+            and not poor_air
+            and pollen_known
+            and not pollen_high
+            and not pollen_present
+        )
         if hum_in is not None and hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
-            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
-                reason = "W domu jest bardzo wilgotno, a powietrze na zewnątrz sprzyja osuszaniu. Krótko przewietrz i włącz wyciąg. Sprawdź też, skąd bierze się wilgoć."
+            if humidity_can_be_reduced and outdoor_air_favorable:
+                reason = (
+                    f"W domu wilgotność wynosi {hum_in:.0f}%. Powietrze na zewnątrz "
+                    "ma wyraźnie niższą wilgoć bezwzględną, a dostępne pomiary nie "
+                    "wskazują na podwyższone zanieczyszczenia ani istotne ryzyko pyłków. "
+                    "Wietrz krótko i intensywnie, a także włącz wyciąg oraz usuń źródło wilgoci."
+                )
             else:
-                reason = f"W domu wilgotność wynosi {hum_in:.0f}%. Włącz wyciąg i sprawdź źródła wilgoci. Nie wietrz długo — najpierw upewnij się, że powietrze na zewnątrz jest odpowiednie."
+                reason = (
+                    f"W domu wilgotność wynosi {hum_in:.0f}% — to wysoki poziom. "
+                    "Włącz wyciąg i sprawdź źródła wilgoci. Nie polegaj na długim wietrzeniu: "
+                    + outdoor_air_verdict + " " + outdoor_pollen_verdict
+                )
+                if not humidity_can_be_reduced:
+                    reason += (
+                        " Na podstawie temperatury i wilgotności bezwzględnej nie ma "
+                        "potwierdzenia, że powietrze z zewnątrz skutecznie osuszy dom."
+                    )
         elif hum_in is not None and hum_in >= 60:
-            recommendation = "Obserwuj wilgotność — rozważ krótkie wietrzenie"
-            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
-                reason = "W domu robi się wilgotno. Krótkie wietrzenie może pomóc, jeśli powietrze na zewnątrz jest czyste i ryzyko pyłków jest niewielkie."
+            recommendation = "Obserwuj wilgotność — oceń możliwość krótkiego wietrzenia"
+            if humidity_can_be_reduced and outdoor_air_favorable:
+                reason = (
+                    f"W domu wilgotność wynosi {hum_in:.0f}%. Powietrze na zewnątrz "
+                    "jest wyraźnie suchsze, a dostępne pomiary nie wskazują na "
+                    "podwyższone zanieczyszczenia ani istotne ryzyko pyłków. "
+                    "Krótkie, intensywne wietrzenie powinno pomóc; używaj wyciągu "
+                    "przy gotowaniu i kąpieli."
+                )
             else:
-                reason = f"W domu wilgotność wynosi {hum_in:.0f}%, ale warunki na zewnątrz nie potwierdzają, że wietrzenie osuszy pomieszczenia. Korzystaj z wyciągu przy gotowaniu i kąpieli, a okna otwieraj krótko, gdy warunki są dobre."
+                reason = (
+                    f"W domu wilgotność wynosi {hum_in:.0f}%. "
+                    + outdoor_air_verdict + " " + outdoor_pollen_verdict
+                )
+                if not humidity_can_be_reduced:
+                    reason += (
+                        " Powietrze z zewnątrz nie jest obecnie wyraźnie suchsze "
+                        "według dostępnych pomiarów, więc samo wietrzenie może nie obniżyć wilgotności."
+                    )
+                else:
+                    reason += (
+                        " Włącz wyciąg przy gotowaniu i kąpieli. Jeśli musisz wymienić "
+                        "powietrze, zrób to krótko i intensywnie, zamiast długo uchylać okno."
+                    )
         elif poor_air:
             recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
             reason = f"Powietrze na zewnątrz przekracza ustawione progi: {', '.join(poor_air_reasons)}. Ogranicz wietrzenie; jeśli musisz wymienić powietrze, otwórz okna na krótko. Jeśli masz oczyszczacz, warto go włączyć."
