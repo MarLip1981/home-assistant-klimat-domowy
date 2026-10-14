@@ -104,8 +104,6 @@ const registerKlimatDomowyCard = () => {
         if (elevated(n)) return "elevated";
         return "bad";
       };
-      const tempInTone = tone(attrs.indoor_temperature, n => n >= 18 && n <= 26, n => n >= 16 && n <= 28);
-      const tempOutTone = tone(attrs.outdoor_temperature, n => n >= 10 && n <= 25, n => n >= 5 && n <= 32);
       const humidityInTone = tone(attrs.indoor_humidity, n => n >= 40 && n <= 60, n => n >= 30 && n < 70);
       const humidityOutTone = tone(attrs.outdoor_humidity, n => n >= 30 && n <= 70, n => n >= 20 && n <= 85);
       const absDifference = numeric(attrs.absolute_humidity_difference_g_m3);
@@ -135,6 +133,13 @@ const registerKlimatDomowyCard = () => {
         : "good";
       const tile = (label, value, toneName) =>
         `<div class="metric ${toneName}"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
+      const temperatureTile = (label, value, rawValue) => {
+        const n = numeric(rawValue);
+        if (n === null) return tile(label, value, "unknown");
+        // A continuous cold-to-hot scale: deep blue at -5°C, red at 40°C.
+        const hue = Math.round(220 - (Math.max(-5, Math.min(40, n) + 5) / 45) * 220);
+        return `<div class="metric temp" style="--temp-color:hsl(${hue} 85% 48%)"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
+      };
       const markup = `
         <style>
           :host{display:block;color:var(--primary-text-color)}
@@ -161,9 +166,9 @@ const registerKlimatDomowyCard = () => {
           .metric.elevated{background:color-mix(in srgb,var(--warning-color,#edb62b) 20%,var(--card-background-color));border-color:color-mix(in srgb,var(--warning-color,#edb62b) 36%,transparent)}
           .metric.bad{background:color-mix(in srgb,var(--error-color,#c62828) 17%,var(--card-background-color));border-color:color-mix(in srgb,var(--error-color,#c62828) 32%,transparent)}
           .metric.unknown{background:var(--secondary-background-color);border-color:var(--divider-color,#777);border-style:dashed}
+          .metric.temp{background:color-mix(in srgb,var(--temp-color) 19%,var(--card-background-color));border-color:color-mix(in srgb,var(--temp-color) 48%,transparent)}
           .label{font-size:12px;color:var(--secondary-text-color);margin-bottom:5px}
           .value{font-size:15px;font-weight:600;overflow-wrap:anywhere}
-          .foot{padding:0 16px 14px;font-size:11px;line-height:1.4;color:var(--secondary-text-color)}
           @media(max-width:360px){h2{font-size:17px}.grid{gap:6px;padding-left:10px;padding-right:10px}.metric{padding:9px}}
         </style>
         <ha-card>
@@ -175,8 +180,8 @@ const registerKlimatDomowyCard = () => {
           <div class="status ${titleTone}">${titleTone === "good" ? "WARUNKI SPRZYJAJĄ" : titleTone === "elevated" ? "ZACHOWAJ OSTROŻNOŚĆ" : titleTone === "bad" ? "WYMAGA UWAGI" : "BRAK PEŁNYCH DANYCH"}</div>
           <div class="section">DOM I ZEWNĄTRZ</div>
           <div class="grid">
-            ${tile("Temperatura w domu", indoorTemp, tempInTone)}
-            ${tile("Temperatura na zewnątrz", outdoorTemp, tempOutTone)}
+            ${temperatureTile("Temperatura w domu", indoorTemp, attrs.indoor_temperature)}
+            ${temperatureTile("Temperatura na zewnątrz", outdoorTemp, attrs.outdoor_temperature)}
             ${tile("Wilgotność w domu", indoorHumidity, humidityInTone)}
             ${tile("Wilgotność na zewnątrz", outdoorHumidity, humidityOutTone)}
             ${tile("Wilgoć bezwzględna — dom", indoorAbs, absInTone)}
@@ -193,7 +198,6 @@ const registerKlimatDomowyCard = () => {
             ${tile("Obieg grzewczy", boiler, boilerTone)}
             ${tile("Opady w ostatniej godzinie", rain, rainTone)}
           </div>
-          <div class="foot">Zielony — dobrze · żółty — podwyższony poziom · czerwony — źle · szary — brak odczytu. Brak danych nie oznacza czystego powietrza.</div>
         </ha-card>`;
 
       if (markup !== this._lastMarkup) {
