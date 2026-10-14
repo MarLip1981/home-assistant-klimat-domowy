@@ -261,6 +261,19 @@ async def async_setup_entry(
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
             reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C. Ponieważ na zewnątrz nie jest chłodniej, ogranicz wietrzenie, jeśli nie musisz wymienić powietrza, by nie nagrzewać pomieszczeń."
 
+        # Add measured values for every factor that materially affects the advice.
+        if poor_air:
+            reason += f" Odczyty zanieczyszczeń: {', '.join(poor_air_reasons)}."
+        if pollen_high or pollen_present:
+            pollen_details = []
+            if pollen_values[0] is not None:
+                pollen_details.append(f"bieżące ryzyko: {pollen_values[0]}")
+            if pollen_values[1] is not None:
+                pollen_details.append(f"prognoza godzinowa: {pollen_values[1]}")
+            if pollen_details:
+                reason += " Dane pyłkowe — " + "; ".join(pollen_details) + "."
+        if hum_in is not None and hum_in >= 60 and abs_humidity_in is not None and abs_humidity_out is not None:
+            reason += f" Wilgotność w domu: {hum_in:.0f}%; wilgoć bezwzględna: dom {abs_humidity_in:.1f} g/m³, zewnątrz {abs_humidity_out:.1f} g/m³."
         if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high or pollen_present):
             reason += " Jednocześnie trzeba uważać na zanieczyszczenia lub pyłki. Włącz wyciąg, ogranicz ich napływ i wietrz tylko krótko, gdy jest to potrzebne."
         if not pollution_known:
