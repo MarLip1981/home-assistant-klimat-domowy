@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+from datetime import datetime
 from dataclasses import dataclass
 from typing import Any
 
@@ -222,6 +223,17 @@ async def async_setup_entry(
             allergy_risk = "Poziom ryzyka nieznany"
 
         data_incomplete = not valid_temperatures or not valid_humidities or temp_out is None
+        # Calendar season is context only; measured conditions take priority.
+        local_month = datetime.now(hass.config.time_zone).month
+        if local_month in (12, 1, 2):
+            season = "zima"
+        elif local_month in (3, 4, 5):
+            season = "wiosna"
+        elif local_month in (6, 7, 8):
+            season = "lato"
+        else:
+            season = "jesień"
+
         if hum_in is not None and hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
             if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
@@ -261,6 +273,31 @@ async def async_setup_entry(
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
             reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C. Ponieważ na zewnątrz nie jest chłodniej, ogranicz wietrzenie, jeśli nie musisz wymienić powietrza, by nie nagrzewać pomieszczeń."
 
+        # Suppress routine ventilation while the heating circuit is active.
+        # Humidity >= 60% remains an indoor-need override handled above.
+        if boiler.upper() == "HEATING" and (hum_in is None or hum_in < 60):
+            recommendation = "Ogranicz wietrzenie — trwa ogrzewanie"
+            if poor_air or pollen_high or pollen_present:
+                reason = (
+                    "Ogrzewanie pracuje, a powietrze na zewnątrz jest niekorzystne "
+                    "z powodu zanieczyszczeń lub pyłków. Nie wietrz rutynowo. "
+                    "Jeśli pojawi się pilna potrzeba wymiany powietrza, otwórz "
+                    "okna szeroko tylko na kilka minut."
+                )
+            elif temp_in is not None and temp_out is not None and temp_out >= temp_in:
+                reason = (
+                    f"Ogrzewanie pracuje; w domu jest {temp_in:.1f}°C, "
+                    f"na zewnątrz {temp_out:.1f}°C. Nie ma teraz powodu do "
+                    "rutynowego wietrzenia — unikaj wychładzania lub dogrzewania "
+                    "domu przez otwarte okna."
+                )
+            else:
+                reason = (
+                    "Ogrzewanie pracuje. Jeśli nie ma pilnej potrzeby wymiany "
+                    "powietrza, pozostaw okna zamknięte. Gdy trzeba przewietrzyć, "
+                    "wybierz krótkie, intensywne otwarcie zamiast uchylania okna."
+                )
+
         # Add measured values only when the main explanation does not already
         # contain them. The same reason text is used by the card and notifications.
         if pollen_high or pollen_present:
@@ -293,6 +330,7 @@ async def async_setup_entry(
             reason += " Sprawdź wskazanie obiegu grzewczego."
         if rain is not None and rain > 0:
             reason += f" W ostatniej godzinie odnotowano {rain:g} mm opadu — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
+        reason += f" Uwzględniona pora roku: {season}; decyzja zależy przede wszystkim od pomiarów i potrzeby wymiany powietrza."
 
         return {
             "recommendation": recommendation,
