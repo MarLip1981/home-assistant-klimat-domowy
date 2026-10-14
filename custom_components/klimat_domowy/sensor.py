@@ -227,16 +227,16 @@ async def async_setup_entry(
             if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
                 reason = "W domu jest bardzo wilgotno, a powietrze na zewnątrz sprzyja osuszaniu. Krótko przewietrz i włącz wyciąg. Sprawdź też, skąd bierze się wilgoć."
             else:
-                reason = "W domu jest bardzo wilgotno. Włącz wyciąg i sprawdź źródła wilgoci. Nie wietrz długo — najpierw upewnij się, że powietrze na zewnątrz jest odpowiednie."
+                reason = f"W domu wilgotność wynosi {hum_in:.0f}%. Włącz wyciąg i sprawdź źródła wilgoci. Nie wietrz długo — najpierw upewnij się, że powietrze na zewnątrz jest odpowiednie."
         elif hum_in is not None and hum_in >= 60:
             recommendation = "Obserwuj wilgotność — rozważ krótkie wietrzenie"
             if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
                 reason = "W domu robi się wilgotno. Krótkie wietrzenie może pomóc, jeśli powietrze na zewnątrz jest czyste i ryzyko pyłków jest niewielkie."
             else:
-                reason = "W domu jest dość wilgotno, ale wietrzenie nie musi pomóc. Korzystaj z wyciągu przy gotowaniu i kąpieli, a okna otwieraj krótko, gdy warunki na zewnątrz są dobre."
+                reason = f"W domu wilgotność wynosi {hum_in:.0f}%, ale warunki na zewnątrz nie potwierdzają, że wietrzenie osuszy pomieszczenia. Korzystaj z wyciągu przy gotowaniu i kąpieli, a okna otwieraj krótko, gdy warunki są dobre."
         elif poor_air:
             recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
-            reason = "Powietrze na zewnątrz jest zanieczyszczone. Ogranicz wietrzenie; jeśli musisz wymienić powietrze, otwórz okna na krótko. Jeśli masz oczyszczacz, warto go włączyć."
+            reason = f"Powietrze na zewnątrz przekracza ustawione progi: {', '.join(poor_air_reasons)}. Ogranicz wietrzenie; jeśli musisz wymienić powietrze, otwórz okna na krótko. Jeśli masz oczyszczacz, warto go włączyć."
             if pollen_high or pollen_present:
                 reason += " Dodatkowo zwróć uwagę na pyłki — mogą nasilać objawy alergii."
         elif pollen_high:
@@ -250,16 +250,16 @@ async def async_setup_entry(
             reason = "Brakuje części odczytów, więc zalecenie może być niedokładne. Sprawdź, czy czujniki są dostępne."
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
-            reason = "Na zewnątrz jest chłodno. Otwórz szeroko okna na około 3–5 minut, a potem je zamknij, żeby nie wychłodzić domu."
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C. Otwórz szeroko okna na około 3–5 minut, a potem je zamknij, żeby nie wychłodzić pomieszczeń."
         elif temp_out < 18:
             recommendation = "Można krótko przewietrzyć"
-            reason = "Możesz krótko przewietrzyć dom, jeśli jakość powietrza i ryzyko pyłków są odpowiednie."
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C. Możesz krótko przewietrzyć dom, jeśli jakość powietrza i ryzyko pyłków są odpowiednie."
         elif temp_out < temp_in:
             recommendation = "Można chłodzić dom"
-            reason = "Na zewnątrz jest chłodniej niż w domu. Otwórz okna, jeśli chcesz obniżyć temperaturę."
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C — różnica wynosi {temp_in - temp_out:.1f}°C. Otwórz okna, jeśli chcesz obniżyć temperaturę."
         else:
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
-            reason = "Na zewnątrz nie jest chłodniej niż w domu. Jeśli nie musisz wymienić powietrza, ogranicz wietrzenie, by nie nagrzewać pomieszczeń."
+            reason = f"Na zewnątrz jest {temp_out:.1f}°C, a w domu {temp_in:.1f}°C. Ponieważ na zewnątrz nie jest chłodniej, ogranicz wietrzenie, jeśli nie musisz wymienić powietrza, by nie nagrzewać pomieszczeń."
 
         if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high or pollen_present):
             reason += " Jednocześnie trzeba uważać na zanieczyszczenia lub pyłki. Włącz wyciąg, ogranicz ich napływ i wietrz tylko krótko, gdy jest to potrzebne."
@@ -272,7 +272,7 @@ async def async_setup_entry(
         elif boiler.upper() not in {"STANDBY", "BRAK DANYCH"}:
             reason += " Sprawdź wskazanie obiegu grzewczego."
         if rain is not None and rain > 0:
-            reason += " Pada deszcz — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
+            reason += f" W ostatniej godzinie odnotowano {rain:g} mm opadu — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
 
         return {
             "recommendation": recommendation,
