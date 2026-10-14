@@ -23,6 +23,7 @@ Expected entity IDs after setup:
 - `sensor.klimat_domowy_wilgotnosc_wewnetrzna`
 - `sensor.klimat_domowy_temperatura_zewnetrzna`
 - `sensor.klimat_domowy_stan_obiegu_grzewczego`
+- `button.klimat_domowy_test_powiadomienia` — immediate notification test.
 
 The recommendation sensor exposes a `reason` attribute plus source readings, room-by-room readings, indoor/outdoor absolute humidity estimates, and data-availability flags. Indoor temperature is averaged across available configured sensors; the highest available indoor relative humidity is used for conservative moisture warnings. Absolute-humidity comparison uses only rooms with both temperature and humidity configured. The built-in dashboard card and notification system read the same coordinator output rather than reimplementing the decision logic. The `Test powiadomienia` button sends a message immediately without waiting for the normal notification delay; if it fails, the Home Assistant log records the configured target and exception. The card displays a concise explanation naming the decisive reading, pairs indoor and outdoor readings in two columns, and color-codes each metric by status; missing readings are grey. It includes PM2.5, PM10, AQI, pollen risk and hourly pollen forecast, heating-circuit state, and rainfall; unavailable readings are shown as missing rather than silently treated as zero.
 
