@@ -12,7 +12,7 @@ Integracja Home Assistant zapewniająca zalecenia dotyczące wietrzenia i jakoś
 
 ## Current development status
 
-Development version **0.2.13**. The implementation provides preconfigured source entities, editable options, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, shared output sensors, a self-registering dashboard card, and built-in stable-recommendation notifications. It is a development build; automated checks run in GitHub Actions, but they do not replace a live test in the user's Home Assistant instance.
+Development version **0.2.14**. The implementation provides preconfigured source entities, editable options, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, shared output sensors, a self-registering dashboard card, and built-in stable-recommendation notifications. It is a development build; automated checks run in GitHub Actions, but they do not replace a live test in the user's Home Assistant instance.
 
 Expected entity IDs after setup:
 
@@ -41,7 +41,7 @@ Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap 
 
 Nie trzeba kopiować plików ręcznie, edytować `configuration.yaml` ani wybierać kilkunastu encji podczas pierwszego uruchomienia. Integracja startuje z przygotowanymi domyślnymi przypisaniami czujników; można je później zmienić w opcjach integracji. Dodanie integracji w interfejsie Home Assistant jest jednorazowym krokiem wymaganym do utworzenia jej wpisu konfiguracyjnego.
 
-Wersja rozwojowa 0.2.13 wymaga sprawdzenia działania w konkretnej instalacji Home Assistant. Testy CI nie zastępują testu powiadomień na skonfigurowanym telefonie.
+Wersja rozwojowa 0.2.14 wymaga sprawdzenia działania w konkretnej instalacji Home Assistant. Testy CI nie zastępują testu powiadomień na skonfigurowanym telefonie.
 
 ## Dashboard card and notifications
 
