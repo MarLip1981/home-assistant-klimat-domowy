@@ -137,7 +137,7 @@ const registerKlimatDomowyCard = () => {
         const n = numeric(rawValue);
         if (n === null) return tile(label, value, "unknown");
         // A continuous cold-to-hot scale: deep blue at -5°C, red at 40°C.
-        const hue = Math.round(220 - (Math.max(-5, Math.min(40, n) + 5) / 45) * 220);
+        const hue = Math.round(220 - ((Math.max(-5, Math.min(40, n)) + 5) / 45) * 220);
         return `<div class="metric temp" style="--temp-color:hsl(${hue} 85% 48%)"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
       };
       const markup = `
