@@ -82,6 +82,9 @@ class KlimatDomowyTestNotificationButton(ButtonEntity):
                     "Sprawdź opcję celu powiadomień integracji."
                 )
         except Exception:
-                _LOGGER.exception("Klimat Domowy: test powiadomienia nie powiódł się dla %s", target)
-                raise
+            _LOGGER.exception(
+                "Klimat Domowy: test powiadomienia nie powiódł się dla %s",
+                target,
+            )
+            raise
         _LOGGER.info("Klimat Domowy: test powiadomienia wysłany do %s", target)
