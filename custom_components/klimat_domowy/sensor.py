@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import datetime
 from dataclasses import dataclass
 from typing import Any
 
@@ -12,6 +11,7 @@ from homeassistant.components.sensor import SensorEntity, SensorEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -224,7 +224,7 @@ async def async_setup_entry(
 
         data_incomplete = not valid_temperatures or not valid_humidities or temp_out is None
         # Calendar season is context only; measured conditions take priority.
-        local_month = datetime.now(hass.config.time_zone).month
+        local_month = dt_util.now().month
         if local_month in (12, 1, 2):
             season = "zima"
         elif local_month in (3, 4, 5):
