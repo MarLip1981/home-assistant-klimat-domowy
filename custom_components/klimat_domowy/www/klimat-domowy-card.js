@@ -153,7 +153,7 @@ const registerKlimatDomowyCard = () => {
             background:rgba(127,127,127,.12);font-size:24px;flex-shrink:0}
           .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
           h2{font-size:19px;line-height:1.25;margin:3px 0 0;font-weight:600}
-          .reason{padding:12px 16px 16px;line-height:1.45;color:var(--primary-text-color)}
+          .reason{padding:12px 16px 16px;font-size:16px;line-height:1.5;color:var(--primary-text-color)}
           .status{margin:0 16px 12px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:700}
           .status.good{background:color-mix(in srgb,var(--success-color,#2e7d32) 18%,var(--card-background-color))}
           .status.elevated{background:color-mix(in srgb,var(--warning-color,#edb62b) 25%,var(--card-background-color))}
