@@ -224,141 +224,56 @@ async def async_setup_entry(
         data_incomplete = not valid_temperatures or not valid_humidities or temp_out is None
         if hum_in is not None and hum_in >= 70:
             recommendation = "Pilnie ogranicz wilgoć"
-            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0:
-                reason = (
-                    "Wilgotność wewnętrzna jest bardzo wysoka, a powietrze zewnętrzne ma "
-                    "wyraźnie mniej wilgoci bezwzględnej. Jeśli jakość powietrza i pyłki "
-                    "na to pozwalają, krótko przewietrz; użyj też wyciągu i sprawdź źródła wilgoci."
-                )
+            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
+                reason = "W domu jest bardzo wilgotno, a powietrze na zewnątrz sprzyja osuszaniu. Krótko przewietrz i włącz wyciąg. Sprawdź też, skąd bierze się wilgoć."
             else:
-                reason = (
-                    "Wilgotność wewnętrzna jest bardzo wysoka. Sprawdź skuteczność i kierunek przepływu wyciągu "
-                    "i sprawdź źródła wilgoci. Nie zakładaj, że samo otwarcie okna osuszy "
-                    "dom — wilgotność bezwzględna na zewnątrz nie jest wyraźnie niższa "
-                    "albo brakuje danych do porównania."
-                )
+                reason = "W domu jest bardzo wilgotno. Włącz wyciąg i sprawdź źródła wilgoci. Nie wietrz długo — najpierw upewnij się, że powietrze na zewnątrz jest odpowiednie."
         elif hum_in is not None and hum_in >= 60:
             recommendation = "Obserwuj wilgotność — rozważ krótkie wietrzenie"
-            if abs_humidity_in is not None and abs_humidity_out is not None:
-                if abs_humidity_out <= abs_humidity_in - 1.0:
-                    reason = (
-                        "Wilgotność wewnętrzna jest podwyższona, a powietrze zewnętrzne "
-                        "jest wyraźnie suchsze w ujęciu bezwzględnym. Krótkie wietrzenie "
-                        "może pomóc, jeśli jakość powietrza i ryzyko pyłków są odpowiednie."
-                    )
-                else:
-                    reason = (
-                        "Wilgotność wewnętrzna jest podwyższona, ale powietrze zewnętrzne "
-                        "nie jest wyraźnie suchsze. Wietrz z uwzględnieniem jakości powietrza "
-                        "i korzystaj z wyciągu przy źródłach wilgoci."
-                    )
+            if abs_humidity_in is not None and abs_humidity_out is not None and abs_humidity_out <= abs_humidity_in - 1.0 and not poor_air and not pollen_high and not pollen_present:
+                reason = "W domu robi się wilgotno. Krótkie wietrzenie może pomóc, jeśli powietrze na zewnątrz jest czyste i ryzyko pyłków jest niewielkie."
             else:
-                reason = (
-                    "Wilgotność wewnętrzna jest podwyższona, ale brakuje danych do "
-                    "porównania ilości wilgoci w powietrzu wewnątrz i na zewnątrz. "
-                    "Nie zakładaj, że samo otwarcie okna osuszy dom."
-                )
+                reason = "W domu jest dość wilgotno, ale wietrzenie nie musi pomóc. Korzystaj z wyciągu przy gotowaniu i kąpieli, a okna otwieraj krótko, gdy warunki na zewnątrz są dobre."
         elif poor_air:
             recommendation = "Ogranicz wietrzenie — zanieczyszczenia"
-            reason = "Podwyższone wskazania: " + ", ".join(poor_air_reasons) + ". Wietrz niezbędnie i krótko; rozważ filtrację."
-            if pollen_high:
-                reason += " Dodatkowo źródło pyłkowe wskazuje wysokie ryzyko alergiczne."
-            elif pollen_present:
-                reason += " Dodatkowo wykryto pyłki; poziom ryzyka wymaga weryfikacji."
+            reason = "Powietrze na zewnątrz jest zanieczyszczone. Ogranicz wietrzenie; jeśli musisz wymienić powietrze, otwórz okna na krótko. Jeśli masz oczyszczacz, warto go włączyć."
+            if pollen_high or pollen_present:
+                reason += " Dodatkowo zwróć uwagę na pyłki — mogą nasilać objawy alergii."
         elif pollen_high:
             recommendation = "Wietrz krótko — wysokie ryzyko pyłków"
-            reason = "Dane o pyłkach wskazują wysokie ryzyko alergiczne."
+            reason = "W powietrzu może być dużo pyłków. Wietrz krótko i, jeśli możesz, wybierz porę z mniejszym ryzykiem."
         elif pollen_present:
             recommendation = "Wietrz krótko — pyłki wykryte"
-            reason = "Źródło wskazuje obecność pyłków, ale poziom ryzyka nie jest jednoznaczny. Wietrz krótko i obserwuj własną reakcję."
+            reason = "Wykryto pyłki. Otwieraj okna na krótko i obserwuj, czy pojawiają się objawy alergii."
         elif data_incomplete:
             recommendation = "Sprawdź czujniki — brak pełnych danych"
-            reason = "Brakuje temperatury wewnętrznej/zewnętrznej lub wilgotności wewnętrznej."
+            reason = "Brakuje części odczytów, więc zalecenie może być niedokładne. Sprawdź, czy czujniki są dostępne."
         elif temp_out < 10:
             recommendation = "Wietrz krótko i intensywnie"
-            reason = "Na zewnątrz jest chłodno. Otwórz okna szeroko na około 3–5 minut, najlepiej po przeciwnych stronach mieszkania, jeśli to możliwe, aby uzyskać szybki przepływ powietrza. Nie uchylaj ich na długo i nie machaj nimi — chodzi o krótką, mocną wymianę powietrza. Jeśli jakość powietrza lub ryzyko pyłków są podwyższone, ogranicz wietrzenie i kieruj się tym ostrzeżeniem."
+            reason = "Na zewnątrz jest chłodno. Otwórz szeroko okna na około 3–5 minut, a potem je zamknij, żeby nie wychłodzić domu."
         elif temp_out < 18:
             recommendation = "Można krótko przewietrzyć"
-            reason = "Umiarkowana temperatura zewnętrzna sprzyja krótkiej wymianie powietrza, jeśli nie ma innych przeciwwskazań."
+            reason = "Możesz krótko przewietrzyć dom, jeśli jakość powietrza i ryzyko pyłków są odpowiednie."
         elif temp_out < temp_in:
             recommendation = "Można chłodzić dom"
-            reason = "Na zewnątrz jest chłodniej niż wewnątrz; korzystaj z tego, jeśli potrzebujesz obniżyć temperaturę."
+            reason = "Na zewnątrz jest chłodniej niż w domu. Otwórz okna, jeśli chcesz obniżyć temperaturę."
         else:
             recommendation = "Ogranicz wietrzenie dla chłodzenia"
-            reason = "Na zewnątrz nie jest chłodniej niż w domu. Wietrz nadal, gdy wymaga tego jakość powietrza wewnętrznego."
+            reason = "Na zewnątrz nie jest chłodniej niż w domu. Jeśli nie musisz wymienić powietrza, ogranicz wietrzenie, by nie nagrzewać pomieszczeń."
 
         if hum_in is not None and hum_in >= 60 and (poor_air or pollen_high or pollen_present):
-            conflicts = []
-            if poor_air:
-                conflicts.append("podwyższone zanieczyszczenia: " + ", ".join(poor_air_reasons))
-            if pollen_high:
-                conflicts.append("wysokie ryzyko pyłków")
-            elif pollen_present:
-                conflicts.append("wykryte pyłki o niejednoznacznym poziomie ryzyka")
-            reason += (
-                " Jednocześnie występuje " + " oraz ".join(conflicts) + ". "
-                "Nie ignoruj problemu wilgoci, ale nie zakładaj też, że otwarcie okna jest "
-                "najlepszym rozwiązaniem. Sprawdź skuteczność i kierunek przepływu wentylacji; "
-                "ogranicz napływ zanieczyszczeń i rozważ filtrację."
-            )
+            reason += " Jednocześnie trzeba uważać na zanieczyszczenia lub pyłki. Włącz wyciąg, ogranicz ich napływ i wietrz tylko krótko, gdy jest to potrzebne."
         if not pollution_known:
-            reason += " Brak odczytów zanieczyszczeń nie oznacza, że powietrze jest czyste."
+            reason += " Brakuje aktualnych danych o zanieczyszczeniach — zachowaj ostrożność."
         if not pollen_known:
-            reason += " Brak danych o pyłkach nie oznacza braku alergenów."
+            reason += " Brakuje aktualnych danych o pyłkach."
         if boiler.upper() == "HEATING":
-            reason += " Obieg grzewczy pracuje — unikaj długiego wychładzania; nie jest to bezwzględny zakaz wietrzenia."
+            reason += " Ogrzewanie pracuje — nie zostawiaj okien otwartych na długo."
         elif boiler.upper() not in {"STANDBY", "BRAK DANYCH"}:
-            reason += f" Stan obiegu grzewczego: {boiler}."
+            reason += " Sprawdź wskazanie obiegu grzewczego."
         if rain is not None and rain > 0:
-            reason += " Odnotowano opady — zabezpiecz okna przed deszczem."
+            reason += " Pada deszcz — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
 
-        # Every recommendation should explain itself using the actual readings,
-        # not only a generic sentence. Keep raw values and configured thresholds
-        # visible so the user can judge why the advice was produced.
-        def reading(value: float | None, unit: str = "") -> str:
-            return "brak danych" if value is None else f"{value:.1f}{unit}"
-
-        context = [
-            f"temperatura w domu {reading(temp_in, ' °C')}",
-            f"maksymalna z dostępnych temperatur pokojowych {reading(temp_in_max, ' °C')}",
-            f"wilgotność wewnętrzna {reading(hum_in, '%')}",
-            f"temperatura zewnętrzna {reading(temp_out, ' °C')}",
-            f"wilgotność zewnętrzna {reading(hum_out, '%')}",
-            (
-                "różnica wilgoci bezwzględnej (dom minus zewnątrz) "
-                f"{reading(abs_humidity_in - abs_humidity_out, ' g/m³')}"
-                if abs_humidity_in is not None and abs_humidity_out is not None
-                else "różnica wilgoci bezwzględnej: brak danych do porównania"
-            ),
-            f"PM2.5 {reading(pm25, ' µg/m³')} (próg {pm25_limit:g} µg/m³)",
-            f"PM10 {reading(pm10, ' µg/m³')} (próg {pm10_limit:g} µg/m³)",
-            f"indeks jakości powietrza {reading(aqi)} (wartości 3–5 traktowane jako podwyższone)",
-            f"ryzyko pyłkowe: {pollen_values[0] or 'brak danych'}",
-            f"prognoza godzinowa pyłków: {pollen_values[1] or 'brak danych'}",
-        ]
-        reason += "\n\nOdczyty, na których oparto zalecenie: " + "; ".join(context) + "."
-        if poor_air:
-            reason += (
-                " Ponieważ co najmniej jeden wskaźnik przekracza przyjęty próg, "
-                "nie wietrz długo ani przy uchylonym oknie; jeśli trzeba wymienić powietrze, "
-                "zrób to krótko i intensywnie, a przy objawach lub bardzo złym powietrzu "
-                "rozważ filtrację i ponowną ocenę odczytów."
-            )
-        elif pollen_high or pollen_present:
-            reason += (
-                " Ze względu na sygnał pyłkowy wybierz moment o niższym ryzyku, jeśli źródło "
-                "pokazuje taką zmianę. Sam odczyt pyłków nie określa indywidualnej reakcji alergicznej."
-            )
-        if hum_in is not None and hum_in >= 60:
-            reason += (
-                " Wilgotność względna powyżej 60% uzasadnia sprawdzenie źródeł wilgoci "
-                "i działania wyciągu; przy porównaniu osuszania ważniejsza jest wilgoć bezwzględna "
-                "niż sama wilgotność względna."
-            )
-
-        # Zachowaj pełne uzasadnienie z odczytami i progami zbudowane wyżej.
-        # Nie zastępuj go skróconym tekstem: ten sam opis trafia do encji,
-        # karty pulpitu oraz powiadomień.
         return {
             "recommendation": recommendation,
             "air_quality": air_quality,
