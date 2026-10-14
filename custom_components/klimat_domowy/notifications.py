@@ -74,23 +74,11 @@ def async_setup_notifications(
             return
 
         attributes = data.get("attributes", {})
-        reason = attributes.get("reason", "Sprawdź kartę Klimat Domowy.")
-        temp_in = attributes.get("indoor_temperature")
-        humidity_in = attributes.get("indoor_humidity")
-        temp_out = attributes.get("outdoor_temperature")
+        # Use exactly the same explanation as the dashboard card. This keeps
+        # the notification concise and prevents repeating measurements already
+        # named in the reason text.
+        message = attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
 
-        def fmt(value: Any, suffix: str = "") -> str:
-            try:
-                return f"{float(value):.1f}{suffix}"
-            except (TypeError, ValueError):
-                return "brak danych"
-
-        message = (
-            f"{reason}\n\n"
-            f"W domu: {fmt(temp_in, ' °C')}, wilgotność {fmt(humidity_in, '%')}.\n"
-            f"Na zewnątrz: {fmt(temp_out, ' °C')}.\n"
-            "Kierunek przepływu wentylacji nie jest mierzony."
-        )
         try:
             # Prefer the entity-based action when the configured notify entity
             # exists. A legacy service with the same name can also be present,
