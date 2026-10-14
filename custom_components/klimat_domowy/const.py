@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 DOMAIN = "klimat_domowy"
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "button"]
 SCAN_INTERVAL = timedelta(minutes=5)
 
 CONF_INDOOR_TEMPERATURE = "indoor_temperature"
