@@ -52,6 +52,7 @@ def async_setup_notifications(
 
     last_sent_by_recommendation: dict[str, Any] = {}
     last_seen = (coordinator.data or {}).get("recommendation")
+    retry_recommendation: str | None = None
     cancel_timer = None
     remove_listener = None
 
@@ -63,7 +64,8 @@ def async_setup_notifications(
     )
 
     async def send_if_unchanged(expected: str) -> None:
-        """Send only if the recommendation still matches and isn't a recent repeat."""
+        """Send only if unchanged; remember transient failures for a later retry."""
+        nonlocal retry_recommendation
         data = coordinator.data or {}
         current = data.get("recommendation")
         if current != expected:
@@ -72,6 +74,7 @@ def async_setup_notifications(
                 expected,
                 current,
             )
+            retry_recommendation = None
             return
 
         now = dt_util.now()
@@ -92,9 +95,10 @@ def async_setup_notifications(
         )
         if not legacy_service_available and not notify_entity_available:
             _LOGGER.error(
-                "Klimat Domowy: target %r is unavailable. Check the notify target in integration options.",
+                "Klimat Domowy: target %r is unavailable. Check the notify target in integration options; will retry after the next sensor update.",
                 service_value,
             )
+            retry_recommendation = expected
             return
 
         attributes = data.get("attributes", {})
@@ -126,9 +130,14 @@ def async_setup_notifications(
                 )
                 return
         except Exception:
-            _LOGGER.exception("Klimat Domowy: failed to send notification through %s", service_value)
+            _LOGGER.exception(
+                "Klimat Domowy: failed to send notification through %s; will retry after the next sensor update",
+                service_value,
+            )
+            retry_recommendation = expected
             return
 
+        retry_recommendation = None
         last_sent_by_recommendation[expected] = now
         _LOGGER.info("Klimat Domowy: notification sent through %s for recommendation %r", service_value, expected)
 
@@ -158,15 +167,19 @@ def async_setup_notifications(
 
     @callback
     def coordinator_updated() -> None:
-        """Schedule only when the recommendation category changes."""
+        """Schedule changes, and retry a failed send when new sensor data arrives."""
         nonlocal last_seen
         current = (coordinator.data or {}).get("recommendation")
-        if not current or current == last_seen:
+        if not current:
             return
-        last_seen = current
-        # The timer is deliberately not reset for further changes. When it fires,
-        # the send path reads the latest recommendation and sends at most that one.
-        schedule_timer(f"recommendation changed to {current!r}")
+        changed = current != last_seen
+        if changed:
+            last_seen = current
+            # The timer is deliberately not reset for further changes. When it fires,
+            # the send path reads the latest recommendation and sends at most that one.
+            schedule_timer(f"recommendation changed to {current!r}")
+        elif retry_recommendation == current and cancel_timer is None:
+            schedule_timer(f"retrying previously failed notification for {current!r}")
 
     remove_listener = coordinator.async_add_listener(coordinator_updated)
 
