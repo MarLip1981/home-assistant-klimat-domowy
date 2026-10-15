@@ -232,6 +232,24 @@ const registerKlimatDomowyCard = () => {
       this.shadowRoot?.querySelectorAll("ha-entity-picker").forEach((picker) => {
         picker.hass = hass;
       });
+      this._updateSettingsLink();
+    }
+
+    async _updateSettingsLink() {
+      const link = this.shadowRoot?.querySelector(".settings-link");
+      if (!link || !this._hass?.callWS) return;
+      try {
+        const entries = await this._hass.callWS({ type: "config_entries/get" });
+        const entry = (Array.isArray(entries) ? entries : []).find(
+          (item) => item.domain === "klimat_domowy"
+        );
+        if (entry?.entry_id) {
+          link.href = `/config/integrations/integration/${encodeURIComponent(entry.entry_id)}`;
+          link.textContent = "Otwórz ustawienia Klimat Domowy";
+        }
+      } catch (error) {
+        // Keep the general integrations page as a safe fallback.
+      }
     }
 
     _render() {
