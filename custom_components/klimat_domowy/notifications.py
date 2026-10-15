@@ -51,6 +51,7 @@ def async_setup_notifications(
         return
 
     last_sent_by_recommendation: dict[str, Any] = {}
+    last_seen = (coordinator.data or {}).get("recommendation")
     cancel_timer = None
     remove_listener = None
 
@@ -157,13 +158,15 @@ def async_setup_notifications(
 
     @callback
     def coordinator_updated() -> None:
-        """Schedule on recommendation-category changes, not measurement/text churn."""
+        """Schedule only when the recommendation category changes."""
+        nonlocal last_seen
         current = (coordinator.data or {}).get("recommendation")
-        if not current:
+        if not current or current == last_seen:
             return
+        last_seen = current
         # The timer is deliberately not reset for further changes. When it fires,
         # the send path reads the latest recommendation and sends at most that one.
-        schedule_timer(f"recommendation update observed ({current!r})")
+        schedule_timer(f"recommendation changed to {current!r}")
 
     remove_listener = coordinator.async_add_listener(coordinator_updated)
 
