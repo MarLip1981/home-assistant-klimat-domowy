@@ -8,6 +8,7 @@ const registerKlimatDomowyCard = () => {
     indoorTemperature: "sensor.klimat_domowy_temperatura_wewnetrzna",
     indoorHumidity: "sensor.klimat_domowy_wilgotnosc_wewnetrzna",
     outdoorTemperature: "sensor.klimat_domowy_temperatura_zewnetrzna",
+    boilerState: "sensor.klimat_domowy_stan_obiegu_grzewczego",
   };
 
   const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -236,6 +237,7 @@ const registerKlimatDomowyCard = () => {
         ["indoorTemperature", "Temperatura wewnętrzna"],
         ["indoorHumidity", "Wilgotność wewnętrzna"],
         ["outdoorTemperature", "Temperatura zewnętrzna"],
+        ["boilerState", "Stan obiegu grzewczego"],
       ];
       this.shadowRoot.innerHTML = `
         <style>
@@ -244,7 +246,7 @@ const registerKlimatDomowyCard = () => {
           ha-entity-picker{display:block;width:100%}
           p{color:var(--secondary-text-color);line-height:1.45}
         </style>
-        <p>Domyślne encje są już przypisane. Zmieniaj je tylko wtedy, gdy zmienisz czujniki lub identyfikatory encji.</p>
+        <p>Domyślne encje wyjściowe integracji są już przypisane. Zmieniaj je tylko wtedy, gdy zmienisz identyfikatory encji.</p><p>Ustawienia wysyłania powiadomień, odbiorcy i czasu stabilizacji są dostępne w: Ustawienia → Urządzenia i usługi → Klimat Domowy → Konfiguruj. Nie są ustawieniami wyglądu karty.</p>
         ${fields.map(([key,label]) => `<label class="field"><span class="label">${label}</span><ha-entity-picker data-key="${key}" label="${label}"></ha-entity-picker></label>`).join("")}`;
       this.shadowRoot.querySelectorAll("ha-entity-picker").forEach((picker) => {
         const key = picker.dataset.key;
