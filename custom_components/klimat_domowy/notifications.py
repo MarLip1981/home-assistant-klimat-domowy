@@ -31,7 +31,8 @@ def async_setup_notifications(
 ) -> None:
     """Send a notification when a new recommendation remains stable."""
     enabled = options.get(CONF_NOTIFY_ENABLED, DEFAULT_NOTIFY_ENABLED)
-    if not enabled:
+    if enabled is False or str(enabled).strip().lower() in {"false", "off", "0", "no"}:
+        _LOGGER.warning("Klimat Domowy: automatic notifications are disabled in integration options")
         return
 
     service_value = str(options.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE)).strip()
@@ -58,7 +59,12 @@ def async_setup_notifications(
     async def send_if_unchanged(expected: str) -> None:
         nonlocal last_notified
         data = coordinator.data or {}
-        if data.get("recommendation") != expected or expected == last_notified:
+        current = data.get("recommendation")
+        if current != expected:
+            _LOGGER.info("Klimat Domowy: notification skipped because recommendation changed during delay (expected=%r, current=%r)", expected, current)
+            return
+        if expected == last_notified:
+            _LOGGER.debug("Klimat Domowy: notification skipped because recommendation %r was already sent", expected)
             return
         legacy_service_available = hass.services.has_service("notify", service)
         notify_entity_available = (
@@ -124,9 +130,12 @@ def async_setup_notifications(
             cancel_timer()
             cancel_timer = None
 
+        _LOGGER.info("Klimat Domowy: recommendation changed to %r; notification scheduled in %s min", current, delay_minutes)
+
         def timer_fired(_now) -> None:
             nonlocal cancel_timer
             cancel_timer = None
+            _LOGGER.info("Klimat Domowy: stability timer fired for recommendation %r", current)
             hass.async_create_task(send_if_unchanged(current))
 
         cancel_timer = async_call_later(
@@ -143,6 +152,7 @@ def async_setup_notifications(
         def initial_timer_fired(_now) -> None:
             nonlocal cancel_timer
             cancel_timer = None
+            _LOGGER.info("Klimat Domowy: initial stability timer fired for recommendation %r", initial_recommendation)
             hass.async_create_task(send_if_unchanged(initial_recommendation))
 
         cancel_timer = async_call_later(
