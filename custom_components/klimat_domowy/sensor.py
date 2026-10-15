@@ -180,7 +180,18 @@ async def async_setup_entry(
             state_for(CONF_POLLEN_RISK),
             state_for(CONF_POLLEN_RISK_HOURLY),
         ]
-        boiler = state_for(CONF_BOILER_STATE) or "BRAK DANYCH"
+        boiler_raw = state_for(CONF_BOILER_STATE) or "BRAK DANYCH"
+        boiler_labels = {
+            "HEATING": "Grzeje",
+            "STANDBY": "Gotowy — nie grzeje",
+            "IDLE": "Nie grzeje",
+            "OFF": "Wyłączony",
+            "OFFLINE": "Niedostępny",
+            "UNAVAILABLE": "Niedostępny",
+            "UNKNOWN": "Brak danych",
+            "BRAK DANYCH": "Brak danych",
+        }
+        boiler = boiler_labels.get(boiler_raw.strip().upper(), boiler_raw)
         rain = _number(state_for(CONF_RAIN))
         pm25_limit = _number(options.get(CONF_PM25_LIMIT)) or 15.0
         pm10_limit = _number(options.get(CONF_PM10_LIMIT)) or 45.0
@@ -202,8 +213,26 @@ async def async_setup_entry(
         pollen_low = any(_pollen_is_low(value) for value in pollen_values)
         pollen_present = any(_pollen_is_present(value) for value in pollen_values)
 
+        # OpenWeatherMap AQI is categorical: 1 is best, 5 is worst.
+        # Show a human-readable Polish label instead of the raw numeric code.
+        aqi_labels = {
+            1: "Bardzo dobra",
+            2: "Dobra",
+            3: "Umiarkowana",
+            4: "Zła",
+            5: "Bardzo zła",
+        }
+        aqi_label = aqi_labels.get(int(aqi)) if aqi is not None and aqi.is_integer() else None
+        pm_limit_exceeded = any(
+            value is not None and value > limit
+            for value, limit in ((pm25, pm25_limit), (pm10, pm10_limit))
+        )
         if not pollution_known:
             air_quality = "Brak danych"
+        elif pm_limit_exceeded:
+            air_quality = "Niezadowalająca — przekroczony próg pyłów"
+        elif aqi_label is not None:
+            air_quality = aqi_label
         elif poor_air:
             air_quality = "Podwyższone zanieczyszczenia"
         else:
@@ -349,7 +378,7 @@ async def async_setup_entry(
 
         # Suppress routine ventilation while the heating circuit is active.
         # Humidity >= 60% remains an indoor-need override handled above.
-        if boiler.upper() == "HEATING" and (hum_in is None or hum_in < 60):
+        if boiler_raw.upper() == "HEATING" and (hum_in is None or hum_in < 60):
             recommendation = "Ogranicz wietrzenie — trwa ogrzewanie"
             if poor_air or pollen_high or pollen_present:
                 reason = (
@@ -398,9 +427,9 @@ async def async_setup_entry(
             reason += " Brakuje aktualnych danych o zanieczyszczeniach — zachowaj ostrożność."
         if not pollen_known:
             reason += " Brakuje aktualnych danych o pyłkach."
-        if boiler.upper() == "HEATING":
+        if boiler_raw.upper() == "HEATING":
             reason += " Ogrzewanie pracuje — nie zostawiaj okien otwartych na długo."
-        elif boiler.upper() not in {"STANDBY", "BRAK DANYCH"}:
+        elif boiler_raw.upper() not in {"STANDBY", "IDLE", "OFF", "BRAK DANYCH", "UNKNOWN", "UNAVAILABLE", "OFFLINE"}:
             reason += " Sprawdź wskazanie obiegu grzewczego."
         if rain is not None and rain > 0:
             reason += f" W ostatniej godzinie odnotowano {rain:g} mm opadu — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
