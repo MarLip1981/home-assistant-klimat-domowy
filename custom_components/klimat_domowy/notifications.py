@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_NOTIFY_DELAY,
@@ -22,6 +23,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# A recommendation category may be sent again after this period, but never
+# because a sensor value or explanatory text changed by itself.
+_REPEAT_SUPPRESSION = timedelta(minutes=60)
+
 
 def async_setup_notifications(
     hass: HomeAssistant,
@@ -29,7 +34,7 @@ def async_setup_notifications(
     coordinator: DataUpdateCoordinator,
     options: dict[str, Any],
 ) -> None:
-    """Send a notification when a new recommendation remains stable."""
+    """Notify about meaningful recommendation changes after a short settle time."""
     enabled = options.get(CONF_NOTIFY_ENABLED, DEFAULT_NOTIFY_ENABLED)
     if enabled is False or str(enabled).strip().lower() in {"false", "off", "0", "no"}:
         _LOGGER.warning("Klimat Domowy: automatic notifications are disabled in integration options")
@@ -45,27 +50,39 @@ def async_setup_notifications(
         _LOGGER.warning("Klimat Domowy: invalid notify service %r; notifications disabled", service_value)
         return
 
-    initial_data = coordinator.data or {}
-    last_seen = initial_data.get("recommendation")
+    last_sent_by_recommendation: dict[str, Any] = {}
+    cancel_timer = None
+    remove_listener = None
+
     _LOGGER.info(
-        "Klimat Domowy: notifications enabled; target=%s, delay=%s min, initial recommendation=%r",
+        "Klimat Domowy: notifications enabled; target=%s, settle time=%s min, repeated-category suppression=%s min",
         service_value,
         delay_minutes,
-        last_seen,
+        int(_REPEAT_SUPPRESSION.total_seconds() / 60),
     )
-    last_notified = None
-    cancel_timer = None
 
     async def send_if_unchanged(expected: str) -> None:
-        nonlocal last_notified
+        """Send only if the recommendation still matches and isn't a recent repeat."""
         data = coordinator.data or {}
         current = data.get("recommendation")
         if current != expected:
-            _LOGGER.info("Klimat Domowy: notification skipped because recommendation changed during delay (expected=%r, current=%r)", expected, current)
+            _LOGGER.info(
+                "Klimat Domowy: notification skipped because recommendation changed before delivery (expected=%r, current=%r)",
+                expected,
+                current,
+            )
             return
-        if expected == last_notified:
-            _LOGGER.debug("Klimat Domowy: notification skipped because recommendation %r was already sent", expected)
+
+        now = dt_util.now()
+        previous_sent = last_sent_by_recommendation.get(expected)
+        if previous_sent is not None and now - previous_sent < _REPEAT_SUPPRESSION:
+            _LOGGER.info(
+                "Klimat Domowy: repeated recommendation %r suppressed (sent less than %s min ago)",
+                expected,
+                int(_REPEAT_SUPPRESSION.total_seconds() / 60),
+            )
             return
+
         legacy_service_available = hass.services.has_service("notify", service)
         notify_entity_available = (
             service_value.startswith("notify.")
@@ -80,15 +97,9 @@ def async_setup_notifications(
             return
 
         attributes = data.get("attributes", {})
-        # Use exactly the same explanation as the dashboard card. This keeps
-        # the notification concise and prevents repeating measurements already
-        # named in the reason text.
         message = attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
 
         try:
-            # Prefer the entity-based action when the configured notify entity
-            # exists. A legacy service with the same name can also be present,
-            # but is not the reliable target for modern notify entities/groups.
             if notify_entity_available:
                 await hass.services.async_call(
                     "notify",
@@ -116,58 +127,57 @@ def async_setup_notifications(
         except Exception:
             _LOGGER.exception("Klimat Domowy: failed to send notification through %s", service_value)
             return
-        last_notified = expected
-        _LOGGER.info("Klimat Domowy: notification sent through %s", service_value)
+
+        last_sent_by_recommendation[expected] = now
+        _LOGGER.info("Klimat Domowy: notification sent through %s for recommendation %r", service_value, expected)
 
     @callback
-    def coordinator_updated() -> None:
-        nonlocal last_seen, cancel_timer
-        current = (coordinator.data or {}).get("recommendation")
-        if not current or current == last_seen:
+    def schedule_timer(reason: str) -> None:
+        """Start one fixed settle window; subsequent changes don't restart it."""
+        nonlocal cancel_timer
+        if cancel_timer is not None:
+            _LOGGER.debug("Klimat Domowy: settle timer already active; latest recommendation will be checked when it fires")
             return
-        last_seen = current
-        if cancel_timer:
-            cancel_timer()
-            cancel_timer = None
 
-        _LOGGER.info("Klimat Domowy: recommendation changed to %r; notification scheduled in %s min", current, delay_minutes)
+        _LOGGER.info("Klimat Domowy: %s; notification check scheduled in %s min", reason, delay_minutes)
 
         def timer_fired(_now) -> None:
             nonlocal cancel_timer
             cancel_timer = None
-            _LOGGER.info("Klimat Domowy: stability timer fired for recommendation %r", current)
+            current = (coordinator.data or {}).get("recommendation")
+            if not current:
+                _LOGGER.info("Klimat Domowy: notification timer fired without a current recommendation")
+                return
+            _LOGGER.info("Klimat Domowy: settle timer fired; checking latest recommendation %r", current)
             hass.async_create_task(send_if_unchanged(current))
 
         cancel_timer = async_call_later(
             hass, timedelta(minutes=delay_minutes), timer_fired
         )
 
+    @callback
+    def coordinator_updated() -> None:
+        """Schedule on recommendation-category changes, not measurement/text churn."""
+        current = (coordinator.data or {}).get("recommendation")
+        if not current:
+            return
+        # The timer is deliberately not reset for further changes. When it fires,
+        # the send path reads the latest recommendation and sends at most that one.
+        schedule_timer(f"recommendation update observed ({current!r})")
+
     remove_listener = coordinator.async_add_listener(coordinator_updated)
 
-    # Send the initial recommendation too, once it has remained stable for the
-    # configured delay. Otherwise a new installation can stay silent forever
-    # if the recommendation does not change after setup.
-    initial_recommendation = (coordinator.data or {}).get("recommendation")
-    if initial_recommendation:
-        def initial_timer_fired(_now) -> None:
-            nonlocal cancel_timer
-            cancel_timer = None
-            _LOGGER.info("Klimat Domowy: initial stability timer fired for recommendation %r", initial_recommendation)
-            hass.async_create_task(send_if_unchanged(initial_recommendation))
-
-        cancel_timer = async_call_later(
-            hass, timedelta(minutes=delay_minutes), initial_timer_fired
-        )
-        _LOGGER.info(
-            "Klimat Domowy: initial notification scheduled in %s min",
-            delay_minutes,
-        )
+    # Initial state gets the same settling treatment. Changes during this window
+    # share the timer instead of cancelling/restarting it on every coordinator tick.
+    if (coordinator.data or {}).get("recommendation"):
+        schedule_timer("initial recommendation available")
 
     @callback
     def cleanup() -> None:
         nonlocal cancel_timer
-        remove_listener()
-        if cancel_timer:
+        if remove_listener is not None:
+            remove_listener()
+        if cancel_timer is not None:
             cancel_timer()
             cancel_timer = None
 
