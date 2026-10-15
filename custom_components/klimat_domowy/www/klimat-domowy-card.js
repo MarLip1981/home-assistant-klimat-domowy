@@ -82,6 +82,7 @@ const registerKlimatDomowyCard = () => {
       const rain = metric(attrs.rain_last_hour, " mm");
       const indoorAbs = metric(attrs.indoor_absolute_humidity_g_m3, " g/m³");
       const outdoorAbs = metric(attrs.outdoor_absolute_humidity_g_m3, " g/m³");
+      const roomReadings = Array.isArray(attrs.indoor_room_readings) ? attrs.indoor_room_readings : [];
       const pollen = metric(attrs.pollen_risk);
       const lowerTitle = title.toLowerCase();
       const warning = lowerTitle.includes("ogranicz")
@@ -134,6 +135,10 @@ const registerKlimatDomowyCard = () => {
         : "good";
       const tile = (label, value, toneName) =>
         `<div class="metric ${toneName}"><div class="label">${esc(label)}</div><div class="value">${esc(value)}</div></div>`;
+      const roomTiles = roomReadings.map((room, index) => {
+        const value = `Temperatura: ${room.temperature == null ? "brak danych" : `${room.temperature} °C`} · wilgotność: ${room.humidity == null ? "brak danych" : `${room.humidity}%`}`;
+        return tile(room.name || `Pomieszczenie ${index + 1}`, value, room.temperature == null && room.humidity == null ? "unknown" : "good");
+      }).join("");
       const temperatureTile = (label, value, rawValue) => {
         const n = numeric(rawValue);
         if (n === null) return tile(label, value, "unknown");
@@ -188,6 +193,7 @@ const registerKlimatDomowyCard = () => {
             ${tile("Wilgoć bezwzględna — dom", indoorAbs, absInTone)}
             ${tile("Wilgoć bezwzględna — zewnątrz", outdoorAbs, absOutTone)}
           </div>
+          ${roomTiles ? `<div class="section">POMIESZCZENIA — ODCZYTY Z CZUJNIKÓW</div><div class="grid">${roomTiles}</div>` : ""}
           <div class="section">POZOSTAŁE ODCZYTY</div>
           <div class="grid">
             ${tile("Jakość powietrza", air, airTone)}
@@ -245,8 +251,9 @@ const registerKlimatDomowyCard = () => {
           .label{display:block;margin-bottom:6px;font-weight:500}
           ha-entity-picker{display:block;width:100%}
           p{color:var(--secondary-text-color);line-height:1.45}
+          .settings-link{display:inline-block;margin:4px 0 12px;padding:10px 12px;border-radius:8px;background:var(--primary-color);color:var(--text-primary-color,#fff);text-decoration:none;font-weight:600}
         </style>
-        <p>Domyślne encje wyjściowe integracji są już przypisane. Zmieniaj je tylko wtedy, gdy zmienisz identyfikatory encji.</p><p>Ustawienia wysyłania powiadomień, odbiorcy i czasu stabilizacji są dostępne w: Ustawienia → Urządzenia i usługi → Klimat Domowy → Konfiguruj. Nie są ustawieniami wyglądu karty.</p>
+        <p>Ta część edytuje wyłącznie encje wyjściowe wyświetlane na karcie. Czujniki źródłowe, drugie i trzecie pomieszczenie, progi PM2.5/PM10 oraz powiadomienia i czas stabilizacji konfiguruje się w opcjach integracji.</p><a class="settings-link" href="/config/integrations">Otwórz ustawienia integracji</a><p>Po otwarciu wybierz „Klimat Domowy”, następnie „Konfiguruj”. Tam znajdują się pola dla temperatury i wilgotności w pomieszczeniach 1–3, czujników zewnętrznych, pyłków, zanieczyszczeń, obiegu grzewczego, opadów oraz ustawień powiadomień.</p>
         ${fields.map(([key,label]) => `<label class="field"><span class="label">${label}</span><ha-entity-picker data-key="${key}" label="${label}"></ha-entity-picker></label>`).join("")}`;
       this.shadowRoot.querySelectorAll("ha-entity-picker").forEach((picker) => {
         const key = picker.dataset.key;
