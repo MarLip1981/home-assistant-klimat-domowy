@@ -12,7 +12,7 @@ Integracja Home Assistant zapewniająca zalecenia dotyczące wietrzenia i jakoś
 
 ## Current development status
 
-Development version **0.2.17**. The implementation provides preconfigured source entities, editable options, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, shared output sensors, a self-registering dashboard card, and built-in stable-recommendation notifications. It is a development build; automated checks run in GitHub Actions, but they do not replace a live test in the user's Home Assistant instance.
+Development version **0.2.18**. The implementation provides preconfigured source entities, editable options, up to three indoor temperature/humidity sensor pairs, configurable PM2.5/PM10 caution thresholds, absolute-humidity comparison, shared output sensors, a self-registering dashboard card, and built-in stable-recommendation notifications. It is a development build; automated checks run in GitHub Actions, but they do not replace a live test in the user's Home Assistant instance.
 
 Expected entity IDs after setup:
 
@@ -41,11 +41,11 @@ Thresholds are caution thresholds, not guarantees of safety. The OpenWeatherMap 
 
 Nie trzeba kopiować plików ręcznie, edytować `configuration.yaml` ani wybierać kilkunastu encji podczas pierwszego uruchomienia. Integracja startuje z przygotowanymi domyślnymi przypisaniami czujników; można je później zmienić w opcjach integracji. Dodanie integracji w interfejsie Home Assistant jest jednorazowym krokiem wymaganym do utworzenia jej wpisu konfiguracyjnego.
 
-Wersja rozwojowa 0.2.17 wymaga sprawdzenia działania w konkretnej instalacji Home Assistant. Testy CI nie zastępują testu powiadomień na skonfigurowanym telefonie.
+Wersja rozwojowa 0.2.18 wymaga sprawdzenia działania w konkretnej instalacji Home Assistant. Testy CI nie zastępują testu powiadomień na skonfigurowanym telefonie.
 
 ## Dashboard card and notifications
 
-The `Klimat Domowy` card is registered by the integration and should appear in the dashboard's Add card picker after the frontend loads the module. No separate Lovelace resource or manual card YAML is required. The card editor starts with the integration's output entities and allows mapping changes if entity IDs differ. Notifications are handled by the integration itself: the default target is `notify.cala_rodzina`, the default stability delay is 10 minutes, and both can be changed in the integration options. Notifications are sent only when a new recommendation remains unchanged for the configured delay; source attribute updates alone do not trigger another notification.
+The `Klimat Domowy` card is registered by the integration and should appear in the dashboard's Add card picker after the frontend loads the module. No separate Lovelace resource or manual card YAML is required. The card editor starts with the integration's output entities and allows mapping changes if entity IDs differ. Notifications are handled by the integration itself: the default target is `notify.cala_rodzina`, the default settling delay is 5 minutes, and both can be changed in the integration options. The timer is not restarted by further updates during the settling window; when it fires, the latest recommendation is checked. Measurement and explanatory-text changes alone do not trigger notifications. Repeated notifications for the same recommendation category are suppressed for 60 minutes, while a different recommendation can still be reported.
 
 ## Safety notes
 
