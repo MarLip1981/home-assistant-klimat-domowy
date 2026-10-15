@@ -1,4 +1,4 @@
-name: Create HACS release
+name: Publish GitHub release
 
 on:
   push:
