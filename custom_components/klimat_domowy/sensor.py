@@ -143,17 +143,17 @@ async def async_setup_entry(
 
         indoor_rooms = [
             {
-                "name": "główny czujnik",
+                "name": "Pomieszczenie 1",
                 "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE)),
                 "humidity": _number(state_for(CONF_INDOOR_HUMIDITY)),
             },
             {
-                "name": "drugi czujnik",
+                "name": "Pomieszczenie 2",
                 "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE_2)),
                 "humidity": _number(state_for(CONF_INDOOR_HUMIDITY_2)),
             },
             {
-                "name": "trzeci czujnik",
+                "name": "Pomieszczenie 3",
                 "temperature": _number(state_for(CONF_INDOOR_TEMPERATURE_3)),
                 "humidity": _number(state_for(CONF_INDOOR_HUMIDITY_3)),
             },
