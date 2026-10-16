@@ -175,7 +175,52 @@ async def async_setup_entry(
         abs_humidity_out = _absolute_humidity(temp_out, hum_out)
         pm25 = _number(state_for(CONF_PM25))
         pm10 = _number(state_for(CONF_PM10))
-        aqi = _number(state_for(CONF_AQI))
+        # Prefer the user's local Ostrowiec air-quality index when it exposes a
+        # recognized Polish category (or a 1–6 category number). If unavailable
+        # or unrecognized, retain the configured AQI sensor as a fallback.
+        local_aqi_entity = "sensor.ostrowiec_swietokrzyski_ul_polna_indeks_jakosci_powietrza"
+        local_aqi_raw = state_for(local_aqi_entity)
+        local_aqi_text = str(local_aqi_raw or "").strip().lower()
+        local_aqi_text = (
+            local_aqi_text.replace("ł", "l")
+            .replace("ą", "a")
+            .replace("ę", "e")
+            .replace("ó", "o")
+            .replace("ś", "s")
+            .replace("ć", "c")
+            .replace("ż", "z")
+            .replace("ź", "z")
+            .replace("ń", "n")
+        )
+        local_aqi_categories = (
+            ("bardzo zly", "Bardzo zła", 6),
+            ("zly", "Zła", 5),
+            ("dostateczny", "Dostateczna", 4),
+            ("umiarkowany", "Umiarkowana", 3),
+            ("dobry", "Dobra", 2),
+            ("bardzo dobry", "Bardzo dobra", 1),
+        )
+        local_aqi_label = None
+        local_aqi_rank = None
+        for category, label, rank in local_aqi_categories:
+            if category in local_aqi_text:
+                local_aqi_label = label
+                local_aqi_rank = rank
+                break
+        if local_aqi_rank is None:
+            local_aqi_number = _number(local_aqi_raw)
+            if local_aqi_number is not None and local_aqi_number.is_integer() and 1 <= local_aqi_number <= 6:
+                local_aqi_rank = int(local_aqi_number)
+                local_aqi_label = {
+                    1: "Bardzo dobra",
+                    2: "Dobra",
+                    3: "Umiarkowana",
+                    4: "Dostateczna",
+                    5: "Zła",
+                    6: "Bardzo zła",
+                }[local_aqi_rank]
+        local_aqi_used = local_aqi_rank is not None
+        aqi = float(local_aqi_rank) if local_aqi_used else _number(state_for(CONF_AQI))
         pollen_values = [
             state_for(CONF_POLLEN_RISK),
             state_for(CONF_POLLEN_RISK_HOURLY),
@@ -202,8 +247,13 @@ async def async_setup_entry(
             poor_air_reasons.append(f"PM2.5 {pm25:g}")
         if pm10 is not None and pm10 > pm10_limit:
             poor_air_reasons.append(f"PM10 {pm10:g}")
-        # OpenWeatherMap air pollution index is commonly 1 (best) to 5 (worst).
-        if aqi is not None and aqi >= 3:
+        # The local Ostrowiec index has six Polish categories; warn from
+        # "dostateczna" upward. Keep the configured OpenWeatherMap 1–5 scale
+        # unchanged when the local source is unavailable.
+        if local_aqi_used:
+            if local_aqi_rank is not None and local_aqi_rank >= 4:
+                poor_air_reasons.append(f"lokalny indeks jakości powietrza: {local_aqi_label}")
+        elif aqi is not None and aqi >= 3:
             poor_air_reasons.append(f"indeks jakości powietrza {aqi:g}")
         poor_air = bool(poor_air_reasons)
 
@@ -222,7 +272,11 @@ async def async_setup_entry(
             4: "Zła",
             5: "Bardzo zła",
         }
-        aqi_label = aqi_labels.get(int(aqi)) if aqi is not None and aqi.is_integer() else None
+        aqi_label = (
+            local_aqi_label
+            if local_aqi_used
+            else aqi_labels.get(int(aqi)) if aqi is not None and aqi.is_integer() else None
+        )
         pm_limit_exceeded = any(
             value is not None and value > limit
             for value, limit in ((pm25, pm25_limit), (pm10, pm10_limit))
@@ -467,6 +521,10 @@ async def async_setup_entry(
                 "pm2_5": pm25,
                 "pm10": pm10,
                 "air_quality_index": aqi,
+                "air_quality_source": (
+                    local_aqi_entity if local_aqi_used else options.get(CONF_AQI)
+                ),
+                "local_air_quality_index_raw": local_aqi_raw,
                 "pollen_risk": pollen_values[0],
                 "pollen_risk_hourly": pollen_values[1],
                 "boiler_state": boiler,
@@ -507,6 +565,7 @@ async def async_setup_entry(
             CONF_PM25,
             CONF_PM10,
             CONF_AQI,
+            "sensor.ostrowiec_swietokrzyski_ul_polna_indeks_jakosci_powietrza",
             CONF_POLLEN_RISK,
             CONF_POLLEN_RISK_HOURLY,
             CONF_BOILER_STATE,
