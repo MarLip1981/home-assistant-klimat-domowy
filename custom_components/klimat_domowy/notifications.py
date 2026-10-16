@@ -159,7 +159,9 @@ def async_setup_notifications(
                 _LOGGER.warning("Klimat Domowy: notification timer fired without a current recommendation")
                 return
             _LOGGER.warning("Klimat Domowy: settle timer fired; checking latest recommendation %r", current)
-            hass.async_create_task(send_if_unchanged(current))
+            # async_call_later may invoke this callback from a worker thread.
+            # hass.add_job is thread-safe and schedules the coroutine on HA's loop.
+            hass.add_job(send_if_unchanged, current)
 
         cancel_timer = async_call_later(
             hass, timedelta(minutes=delay_minutes), timer_fired
