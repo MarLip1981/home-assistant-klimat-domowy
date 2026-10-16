@@ -56,7 +56,7 @@ def async_setup_notifications(
     cancel_timer = None
     remove_listener = None
 
-    _LOGGER.info(
+    _LOGGER.warning(
         "Klimat Domowy: notifications enabled; target=%s, settle time=%s min, repeated-category suppression=%s min",
         service_value,
         delay_minutes,
@@ -69,7 +69,7 @@ def async_setup_notifications(
         data = coordinator.data or {}
         current = data.get("recommendation")
         if current != expected:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Klimat Domowy: notification skipped because recommendation changed before delivery (expected=%r, current=%r)",
                 expected,
                 current,
@@ -80,7 +80,7 @@ def async_setup_notifications(
         now = dt_util.now()
         previous_sent = last_sent_by_recommendation.get(expected)
         if previous_sent is not None and now - previous_sent < _REPEAT_SUPPRESSION:
-            _LOGGER.info(
+            _LOGGER.warning(
                 "Klimat Domowy: repeated recommendation %r suppressed (sent less than %s min ago)",
                 expected,
                 int(_REPEAT_SUPPRESSION.total_seconds() / 60),
@@ -139,7 +139,7 @@ def async_setup_notifications(
 
         retry_recommendation = None
         last_sent_by_recommendation[expected] = now
-        _LOGGER.info("Klimat Domowy: notification sent through %s for recommendation %r", service_value, expected)
+        _LOGGER.warning("Klimat Domowy: notification sent through %s for recommendation %r", service_value, expected)
 
     @callback
     def schedule_timer(reason: str) -> None:
@@ -149,16 +149,16 @@ def async_setup_notifications(
             _LOGGER.debug("Klimat Domowy: settle timer already active; latest recommendation will be checked when it fires")
             return
 
-        _LOGGER.info("Klimat Domowy: %s; notification check scheduled in %s min", reason, delay_minutes)
+        _LOGGER.warning("Klimat Domowy: %s; notification check scheduled in %s min", reason, delay_minutes)
 
         def timer_fired(_now) -> None:
             nonlocal cancel_timer
             cancel_timer = None
             current = (coordinator.data or {}).get("recommendation")
             if not current:
-                _LOGGER.info("Klimat Domowy: notification timer fired without a current recommendation")
+                _LOGGER.warning("Klimat Domowy: notification timer fired without a current recommendation")
                 return
-            _LOGGER.info("Klimat Domowy: settle timer fired; checking latest recommendation %r", current)
+            _LOGGER.warning("Klimat Domowy: settle timer fired; checking latest recommendation %r", current)
             hass.async_create_task(send_if_unchanged(current))
 
         cancel_timer = async_call_later(
