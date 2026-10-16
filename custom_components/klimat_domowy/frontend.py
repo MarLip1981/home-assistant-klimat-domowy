@@ -15,7 +15,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 CARD_PATH = Path(__file__).parent / "www" / "klimat-domowy-card.js"
 CARD_URL = "/klimat_domowy/klimat-domowy-card.js"
-CARD_VERSION = "0.2.25"
+CARD_VERSION = "0.2.26"
 VERSIONED_CARD_URL = f"{CARD_URL}?v={CARD_VERSION}"
 _RESOURCE_MARKER = "_lovelace_resource_registered"
 
@@ -48,13 +48,9 @@ async def _async_register_lovelace_resource(hass: HomeAssistant) -> bool:
                     if resource_id is not None and callable(update_item):
                         # Home Assistant owns the resource ID. Passing it back in
                         # the update payload raises ValueError("Cannot update ID").
-                        updates = {
-                            key: value
-                            for key, value in resource.items()
-                            if key != "id"
-                        }
-                        updates["url"] = VERSIONED_CARD_URL
-                        await update_item(resource_id, updates)
+                        # Home Assistant's update schema accepts the URL only;
+                        # resource metadata such as "type" is read-only.
+                        await update_item(resource_id, {"url": VERSIONED_CARD_URL})
                 return True
 
         create_item = getattr(resources, "async_create_item", None)
