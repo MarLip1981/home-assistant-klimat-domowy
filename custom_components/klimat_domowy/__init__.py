@@ -28,8 +28,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     options = dict(entry.data)
     options.update(entry.options)
     coordinator = domain_data[entry.entry_id].get("coordinator")
-    if coordinator is not None:
-        async_setup_notifications(hass, entry, coordinator, options)
+    if coordinator is None:
+        import logging
+
+        logging.getLogger(__name__).error(
+            "Klimat Domowy: notifications NOT initialized because the sensor coordinator "
+            "was not registered after platform setup. Loaded platforms: %s",
+            PLATFORMS,
+        )
+    else:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            "Klimat Domowy: sensor coordinator found; starting notification setup "
+            "(data_available=%s, recommendation=%r)",
+            coordinator.data is not None,
+            (coordinator.data or {}).get("recommendation"),
+        )
+        try:
+            async_setup_notifications(hass, entry, coordinator, options)
+        except Exception:
+            logger.exception(
+                "Klimat Domowy: notification setup crashed; automatic notifications are not running"
+            )
     return True
 
 
