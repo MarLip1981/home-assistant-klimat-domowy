@@ -46,10 +46,15 @@ async def _async_register_lovelace_resource(hass: HomeAssistant) -> bool:
                     resource_id = resource.get("id")
                     update_item = getattr(resources, "async_update_item", None)
                     if resource_id is not None and callable(update_item):
-                        await update_item(resource_id, {
-                            **resource,
-                            "url": VERSIONED_CARD_URL,
-                        })
+                        # Home Assistant owns the resource ID. Passing it back in
+                        # the update payload raises ValueError("Cannot update ID").
+                        updates = {
+                            key: value
+                            for key, value in resource.items()
+                            if key != "id"
+                        }
+                        updates["url"] = VERSIONED_CARD_URL
+                        await update_item(resource_id, updates)
                 return True
 
         create_item = getattr(resources, "async_create_item", None)
