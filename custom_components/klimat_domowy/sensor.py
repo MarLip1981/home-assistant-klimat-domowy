@@ -496,13 +496,12 @@ async def async_setup_entry(
 
         room_readings = []
         for index, room in enumerate(indoor_rooms, start=1):
-            if room["temperature"] is not None or room["humidity"] is not None:
-                room_readings.append(
-                    f"Pomieszczenie {index}: "
-                    f"{reading(room['temperature'], '°C')}, "
-                    f"wilgotność {reading(room['humidity'], '%')}"
-                )
-        indoor_text = "; ".join(room_readings) if room_readings else "brak danych z pomieszczeń"
+            room_readings.append(
+                f"Pomieszczenie {index}: "
+                f"{reading(room['temperature'], '°C')}, "
+                f"wilgotność {reading(room['humidity'], '%')}"
+            )
+        indoor_text = "; ".join(room_readings)
         if aqi is None:
             aqi_text = "indeks jakości powietrza: brak danych"
         elif aqi_label:
