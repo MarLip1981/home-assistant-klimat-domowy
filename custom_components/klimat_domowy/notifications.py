@@ -87,6 +87,9 @@ def async_setup_notifications(
             )
             return
 
+        # Match the old automation's delivery route first: action notify.cala_rodzina
+        # invokes the named notify service. Only fall back to entity-based notify
+        # when this Home Assistant installation exposes no service with that name.
         legacy_service_available = hass.services.has_service("notify", service)
         notify_entity_available = (
             service_value.startswith("notify.")
@@ -105,7 +108,14 @@ def async_setup_notifications(
         message = attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
 
         try:
-            if notify_entity_available:
+            if legacy_service_available:
+                await hass.services.async_call(
+                    "notify",
+                    service,
+                    {"title": f"Klimat Domowy: {expected}", "message": message},
+                    blocking=True,
+                )
+            elif notify_entity_available:
                 await hass.services.async_call(
                     "notify",
                     "send_message",
@@ -114,13 +124,6 @@ def async_setup_notifications(
                         "title": f"Klimat Domowy: {expected}",
                         "message": message,
                     },
-                    blocking=True,
-                )
-            elif legacy_service_available:
-                await hass.services.async_call(
-                    "notify",
-                    service,
-                    {"title": f"Klimat Domowy: {expected}", "message": message},
                     blocking=True,
                 )
             else:
