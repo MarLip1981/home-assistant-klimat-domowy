@@ -489,53 +489,121 @@ async def async_setup_entry(
             reason += f" W ostatniej godzinie odnotowano {rain:g} mm opadu — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
         reason += f" Uwzględniona pora roku: {season}; decyzja zależy przede wszystkim od pomiarów i potrzeby wymiany powietrza."
 
-        # Keep phone notifications concise, but never omit the actual readings.
-        # The detailed explanation remains available as the card's "reason".
+        # Build a plain-language summary: explain the situation first, then include
+        # the readings that support the advice instead of dumping a technical checklist.
+        weather_description = state_for("sensor.rezydencja_weather_description")
+
         def reading(value: float | None, suffix: str = "") -> str:
             return f"{value:g}{suffix}" if value is not None else "brak danych"
 
         room_readings = []
         for index, room in enumerate(indoor_rooms, start=1):
             room_readings.append(
-                f"Pomieszczenie {index}: "
-                f"{reading(room['temperature'], '°C')}, "
-                f"wilgotność {reading(room['humidity'], '%')}"
+                f"{index}. pomieszczenie: {reading(room['temperature'], '°C')} i "
+                f"{reading(room['humidity'], '%')} wilgotności"
             )
         indoor_text = "; ".join(room_readings)
+        outdoor_text = (
+            f"Na zewnątrz jest {reading(temp_out, '°C')}, wilgotność wynosi "
+            f"{reading(hum_out, '%')}."
+        )
+        if weather_description:
+            description = weather_description.strip()
+            description_lower = description.lower()
+            if "mgł" in description_lower or "mglist" in description_lower:
+                weather_text = f"Na dworze jest mgła ({description})."
+            else:
+                weather_text = f"Aktualna pogoda: {description}."
+        else:
+            weather_text = "Opis aktualnej pogody: brak danych."
+
+        if humidity_can_be_reduced:
+            drying_text = (
+                f"Powietrze na zewnątrz jest wyraźnie suchsze i może pomóc osuszyć dom "
+                f"(wilgotność bezwzględna: w domu {abs_humidity_in:.1f} g/m³, "
+                f"na zewnątrz {abs_humidity_out:.1f} g/m³)."
+            )
+        elif abs_humidity_in is not None and abs_humidity_out is not None:
+            drying_text = (
+                f"Na podstawie pomiarów powietrze na zewnątrz nie jest wyraźnie suchsze "
+                f"(wilgotność bezwzględna: w domu {abs_humidity_in:.1f} g/m³, "
+                f"na zewnątrz {abs_humidity_out:.1f} g/m³), więc samo wietrzenie "
+                f"może nie obniżyć wilgotności."
+            )
+        else:
+            drying_text = "Nie da się porównać, które powietrze lepiej osuszy dom, bo brakuje odczytów."
+
         if aqi is None:
             aqi_text = "indeks jakości powietrza: brak danych"
         elif aqi_label:
-            aqi_text = f"indeks jakości powietrza: {aqi_label} (wartość {reading(aqi)})"
+            aqi_text = f"indeks jakości powietrza: {aqi_label}"
         else:
             aqi_text = f"indeks jakości powietrza: {reading(aqi)}"
-        if pollen_values[0] is None:
-            pollen_now_text = "bieżące ryzyko pyłków: brak danych"
-        else:
-            pollen_now_text = f"bieżące ryzyko pyłków: {pollen_values[0]}"
-        if pollen_values[1] is None:
-            pollen_hourly_text = "prognoza godzinowa pyłków: brak danych"
-        else:
-            pollen_hourly_text = f"prognoza godzinowa pyłków: {pollen_values[1]}"
-        humidity_effect = (
-            "zewnętrzne powietrze może pomóc osuszyć dom"
-            if humidity_can_be_reduced
-            else "brak potwierdzenia, że zewnętrzne powietrze osuszy dom"
-            if abs_humidity_in is not None and abs_humidity_out is not None
-            else "nie można porównać wilgotności bezwzględnej — brak odczytów"
+        pollution_text = (
+            f"Pyły: PM2.5 {reading(pm25, ' µg/m³')}, PM10 {reading(pm10, ' µg/m³')}; "
+            f"{aqi_text}. "
+            + (
+                f"Przekroczone progi: {', '.join(poor_air_reasons)}."
+                if poor_air_reasons
+                else "Dostępne pomiary nie przekraczają ustawionych progów."
+                if pollution_known
+                else "Brakuje pomiarów, by ocenić zanieczyszczenia."
+            )
         )
-        notification_lines = [
-            f"Zalecenie: {recommendation}.",
-            f"Ocena zewnętrzna: {air_quality}; pyłki: {allergy_risk}.",
-            f"Temperatura/wilgotność w domu: {indoor_text}.",
-            f"Na zewnątrz: {reading(temp_out, '°C')}, wilgotność {reading(hum_out, '%')}; {humidity_effect}.",
-            f"Zanieczyszczenia: PM2.5 {reading(pm25, ' µg/m³')} (próg {pm25_limit:g}), "
-            f"PM10 {reading(pm10, ' µg/m³')} (próg {pm10_limit:g}); {aqi_text}.",
-            f"{pollen_now_text}; {pollen_hourly_text}.",
-            f"Obieg grzewczy: {boiler}.",
-            f"Opad w ostatniej godzinie: {reading(rain, ' mm')}."
-            if rain is not None else "Opad w ostatniej godzinie: brak danych.",
-        ]
-        notification_message = "\n".join(notification_lines)
+        pollen_text = (
+            f"Pyłki: teraz {pollen_values[0] if pollen_values[0] is not None else 'brak danych'}, "
+            f"w prognozie godzinowej {pollen_values[1] if pollen_values[1] is not None else 'brak danych'}. "
+            f"{'Ryzyko jest wysokie.' if pollen_high else 'Wykryto pyłki — warto wietrzyć krótko.' if pollen_present else 'Ryzyko jest niskie według dostępnych danych.' if pollen_low or pollen_none_detected else 'Nie ma aktualnych danych o pyłkach.'}"
+        )
+        rain_text = (
+            f"W ostatniej godzinie odnotowano {reading(rain, ' mm')} opadu."
+            if rain is not None
+            else "Brak danych o opadzie z ostatniej godziny."
+        )
+        boiler_text = (
+            "Ogrzewanie pracuje, więc nie zostawiaj okien otwartych na długo."
+            if boiler_raw.upper() == "HEATING"
+            else f"Stan ogrzewania: {boiler}."
+        )
+
+        # The existing recommendation logic remains unchanged; this layer explains
+        # its outcome in everyday language and highlights the most relevant factors.
+        recommendation_lower = recommendation.lower()
+        if "pilnie ogranicz wilgoć" in recommendation_lower:
+            opening = "W domu jest za wilgotno — warto zająć się wilgocią już teraz."
+            action = "Włącz wyciąg w łazience lub kuchni i usuń źródło wilgoci. Wietrz krótko tylko wtedy, gdy warunki na zewnątrz na to pozwalają."
+        elif hum_in is not None and hum_in >= 60:
+            opening = "Wilgotność w domu jest podwyższona — trzeba ją obserwować."
+            action = "Jeśli chcesz osuszyć dom, wietrz krótko tylko wtedy, gdy powietrze z zewnątrz jest suchsze; używaj wyciągu po kąpieli i gotowaniu."
+        elif poor_air:
+            opening = "Lepiej teraz ograniczyć wietrzenie, bo jakość powietrza na zewnątrz jest gorsza."
+            action = "Jeśli musisz wymienić powietrze, otwórz okna na krótko i zamknij je ponownie."
+        elif pollen_high or pollen_present:
+            opening = "Trzeba uważać na pyłki, które mogą nasilać alergię."
+            action = "Wietrz krótko i unikaj długiego trzymania okien otwartych."
+        elif data_incomplete:
+            opening = "Nie wszystkie czujniki podały odczyty, więc zalecenie jest mniej pewne."
+            action = "Sprawdź brakujące czujniki; do tego czasu unikaj długiego wietrzenia na ślepo."
+        elif boiler_raw.upper() == "HEATING":
+            opening = "Ogrzewanie pracuje, więc nie warto niepotrzebnie wychładzać domu."
+            action = "Jeśli trzeba wymienić powietrze, otwórz okna szeroko na kilka minut i zamknij je."
+        elif temp_out is not None and temp_in is not None and temp_out < temp_in:
+            opening = "Na zewnątrz jest chłodniej niż w domu, więc wietrzenie może odświeżyć powietrze lub obniżyć temperaturę."
+            action = "Otwórz okna na krótko; w chłodną pogodę nie zostawiaj ich długo uchylonych."
+        elif temp_out is not None and temp_in is not None:
+            opening = "Na zewnątrz nie jest chłodniej niż w domu, więc wietrzenie może go dodatkowo nagrzać."
+            action = "Ogranicz wietrzenie dla samego chłodzenia, ale wymień powietrze, jeśli jest taka potrzeba."
+        else:
+            opening = f"Zalecenie na teraz: {recommendation}."
+            action = "Wietrz ostrożnie, bo część pomiarów jest niedostępna."
+
+        notification_message = (
+            f"{opening} {action}\n\n"
+            f"{weather_text} {outdoor_text} W domu: {indoor_text}.\n"
+            f"{drying_text}\n"
+            f"{pollution_text}\n{pollen_text}\n"
+            f"{rain_text} {boiler_text}"
+        )
 
         return {
             "recommendation": recommendation,
@@ -619,6 +687,7 @@ async def async_setup_entry(
             CONF_POLLEN_RISK_HOURLY,
             CONF_BOILER_STATE,
             CONF_RAIN,
+            "sensor.rezydencja_weather_description",
         )
         if options.get(key)
     }
