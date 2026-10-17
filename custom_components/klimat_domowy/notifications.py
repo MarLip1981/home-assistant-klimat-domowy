@@ -105,7 +105,9 @@ def async_setup_notifications(
             return
 
         attributes = data.get("attributes", {})
-        message = attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
+        # Prefer the concise notification summary with explicit sensor readings;
+        # keep the longer explanation available on the card as "reason".
+        message = attributes.get("notification_message") or attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
 
         try:
             if legacy_service_available:
