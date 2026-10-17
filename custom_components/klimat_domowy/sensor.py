@@ -489,6 +489,55 @@ async def async_setup_entry(
             reason += f" W ostatniej godzinie odnotowano {rain:g} mm opadu — uważaj, żeby nie zalać pomieszczeń przez otwarte okna."
         reason += f" Uwzględniona pora roku: {season}; decyzja zależy przede wszystkim od pomiarów i potrzeby wymiany powietrza."
 
+        # Keep phone notifications concise, but never omit the actual readings.
+        # The detailed explanation remains available as the card's "reason".
+        def reading(value: float | None, suffix: str = "") -> str:
+            return f"{value:g}{suffix}" if value is not None else "brak danych"
+
+        room_readings = []
+        for index, room in enumerate(indoor_rooms, start=1):
+            if room["temperature"] is not None or room["humidity"] is not None:
+                room_readings.append(
+                    f"Pomieszczenie {index}: "
+                    f"{reading(room['temperature'], '°C')}, "
+                    f"wilgotność {reading(room['humidity'], '%')}"
+                )
+        indoor_text = "; ".join(room_readings) if room_readings else "brak danych z pomieszczeń"
+        if aqi is None:
+            aqi_text = "indeks jakości powietrza: brak danych"
+        elif aqi_label:
+            aqi_text = f"indeks jakości powietrza: {aqi_label} (wartość {reading(aqi)})"
+        else:
+            aqi_text = f"indeks jakości powietrza: {reading(aqi)}"
+        if pollen_values[0] is None:
+            pollen_now_text = "bieżące ryzyko pyłków: brak danych"
+        else:
+            pollen_now_text = f"bieżące ryzyko pyłków: {pollen_values[0]}"
+        if pollen_values[1] is None:
+            pollen_hourly_text = "prognoza godzinowa pyłków: brak danych"
+        else:
+            pollen_hourly_text = f"prognoza godzinowa pyłków: {pollen_values[1]}"
+        humidity_effect = (
+            "zewnętrzne powietrze może pomóc osuszyć dom"
+            if humidity_can_be_reduced
+            else "brak potwierdzenia, że zewnętrzne powietrze osuszy dom"
+            if abs_humidity_in is not None and abs_humidity_out is not None
+            else "nie można porównać wilgotności bezwzględnej — brak odczytów"
+        )
+        notification_lines = [
+            f"Zalecenie: {recommendation}.",
+            f"Ocena zewnętrzna: {air_quality}; pyłki: {allergy_risk}.",
+            f"Temperatura/wilgotność w domu: {indoor_text}.",
+            f"Na zewnątrz: {reading(temp_out, '°C')}, wilgotność {reading(hum_out, '%')}; {humidity_effect}.",
+            f"Zanieczyszczenia: PM2.5 {reading(pm25, ' µg/m³')} (próg {pm25_limit:g}), "
+            f"PM10 {reading(pm10, ' µg/m³')} (próg {pm10_limit:g}); {aqi_text}.",
+            f"{pollen_now_text}; {pollen_hourly_text}.",
+            f"Obieg grzewczy: {boiler}.",
+            f"Opad w ostatniej godzinie: {reading(rain, ' mm')}."
+            if rain is not None else "Opad w ostatniej godzinie: brak danych.",
+        ]
+        notification_message = "\\n".join(notification_lines)
+
         return {
             "recommendation": recommendation,
             "air_quality": air_quality,
@@ -499,6 +548,7 @@ async def async_setup_entry(
             "boiler_state": boiler,
             "attributes": {
                 "reason": reason,
+                "notification_message": notification_message,
                 "indoor_temperature": temp_in,
                 "indoor_temperature_max": temp_in_max,
                 "indoor_temperature_readings": valid_temperatures,
