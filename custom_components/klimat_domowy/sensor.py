@@ -536,7 +536,7 @@ async def async_setup_entry(
             f"Opad w ostatniej godzinie: {reading(rain, ' mm')}."
             if rain is not None else "Opad w ostatniej godzinie: brak danych.",
         ]
-        notification_message = "\\n".join(notification_lines)
+        notification_message = "\n".join(notification_lines)
 
         return {
             "recommendation": recommendation,
