@@ -55,6 +55,7 @@ def async_setup_notifications(
     retry_recommendation: str | None = None
     cancel_timer = None
     cancel_reminder = None
+    cancel_quiet_timer = None
     remove_listener = None
 
     _LOGGER.warning(
@@ -79,6 +80,13 @@ def async_setup_notifications(
             return
 
         now = dt_util.now()
+        if now.hour >= 22 or now.hour < 6:
+            schedule_quiet_end(expected)
+            _LOGGER.info(
+                "Klimat Domowy: notification suppressed during quiet hours (22:00–06:00); latest recommendation will be reconsidered after 06:00"
+            )
+            return
+
         previous_sent = last_sent_by_recommendation.get(expected)
         if previous_sent is not None and now - previous_sent < _REPEAT_SUPPRESSION:
             _LOGGER.warning(
@@ -110,6 +118,7 @@ def async_setup_notifications(
         # Prefer the concise notification summary with explicit sensor readings;
         # keep the longer explanation available on the card as "reason".
         message = attributes.get("notification_message") or attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
+        message = f"Zalecenie z {now.strftime('%d.%m.%Y, %H:%M')}\\n\\n{message}"
 
         try:
             if legacy_service_available:
@@ -175,6 +184,38 @@ def async_setup_notifications(
             hass, timedelta(minutes=delay_minutes), timer_fired
         )
 
+    def schedule_quiet_end(expected: str) -> None:
+        """Defer quiet-hour notifications and reevaluate the latest state after 06:00."""
+        nonlocal cancel_quiet_timer
+        if cancel_quiet_timer is not None:
+            return
+
+        now = dt_util.now()
+        next_morning = now.replace(hour=6, minute=0, second=0, microsecond=0)
+        if now.hour >= 22:
+            next_morning += timedelta(days=1)
+        delay = max(next_morning - now, timedelta(seconds=1))
+
+        def quiet_timer_fired(_now) -> None:
+            nonlocal cancel_quiet_timer
+            cancel_quiet_timer = None
+            current = (coordinator.data or {}).get("recommendation")
+            if not current:
+                return
+            # Refresh source entities, then allow the normal settle window to
+            # send only the latest recommendation rather than a stale night-time one.
+            hass.add_job(coordinator.async_request_refresh)
+            hass.add_job(
+                schedule_timer,
+                f"quiet hours ended; reevaluating latest recommendation {current!r}",
+            )
+
+        cancel_quiet_timer = async_call_later(hass, delay, quiet_timer_fired)
+        _LOGGER.debug(
+            "Klimat Domowy: quiet-hour delivery deferred until 06:00 (recommendation=%r)",
+            expected,
+        )
+
     def schedule_reminder(expected: str) -> None:
         """Repeat a still-active recommendation every two hours."""
         nonlocal cancel_reminder
@@ -229,7 +270,7 @@ def async_setup_notifications(
 
     @callback
     def cleanup() -> None:
-        nonlocal cancel_timer, cancel_reminder
+        nonlocal cancel_timer, cancel_reminder, cancel_quiet_timer
         if remove_listener is not None:
             remove_listener()
         if cancel_timer is not None:
@@ -238,5 +279,8 @@ def async_setup_notifications(
         if cancel_reminder is not None:
             cancel_reminder()
             cancel_reminder = None
+        if cancel_quiet_timer is not None:
+            cancel_quiet_timer()
+            cancel_quiet_timer = None
 
     entry.async_on_unload(cleanup)
