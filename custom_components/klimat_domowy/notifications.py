@@ -86,6 +86,7 @@ def async_setup_notifications(
                 expected,
                 int(_REPEAT_SUPPRESSION.total_seconds() / 60),
             )
+            schedule_reminder(expected)
             return
 
         # Match the old automation's delivery route first: action notify.cala_rodzina
