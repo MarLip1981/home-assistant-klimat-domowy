@@ -118,7 +118,7 @@ def async_setup_notifications(
         # Prefer the concise notification summary with explicit sensor readings;
         # keep the longer explanation available on the card as "reason".
         message = attributes.get("notification_message") or attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
-        message = f"Zalecenie z {now.strftime('%d.%m.%Y, %H:%M')}\\n\\n{message}"
+        message = f"Zalecenie z {now.strftime('%d.%m.%Y, %H:%M')}\n\n{message}"
 
         try:
             if legacy_service_available:
