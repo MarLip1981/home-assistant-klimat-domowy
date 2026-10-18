@@ -221,7 +221,6 @@ async def async_setup_entry(
                 }[local_aqi_rank]
         # The local Ostrowiec index is supplementary only. It may be unavailable
         # or stale, so it must never override the configured primary AQI source.
-        local_aqi_used = local_aqi_rank is not None
         aqi = _number(state_for(CONF_AQI))
         pollen_values = [
             state_for(CONF_POLLEN_RISK),
