@@ -54,6 +54,7 @@ def async_setup_notifications(
     last_seen = (coordinator.data or {}).get("recommendation")
     retry_recommendation: str | None = None
     cancel_timer = None
+    cancel_reminder = None
     remove_listener = None
 
     _LOGGER.warning(
@@ -85,6 +86,7 @@ def async_setup_notifications(
                 expected,
                 int(_REPEAT_SUPPRESSION.total_seconds() / 60),
             )
+            schedule_reminder(expected)
             return
 
         # Match the old automation's delivery route first: action notify.cala_rodzina
@@ -145,6 +147,7 @@ def async_setup_notifications(
         retry_recommendation = None
         last_sent_by_recommendation[expected] = now
         _LOGGER.warning("Klimat Domowy: notification sent through %s for recommendation %r", service_value, expected)
+        schedule_reminder(expected)
 
     @callback
     def schedule_timer(reason: str) -> None:
@@ -172,16 +175,45 @@ def async_setup_notifications(
             hass, timedelta(minutes=delay_minutes), timer_fired
         )
 
+    def schedule_reminder(expected: str) -> None:
+        """Repeat a still-active recommendation every two hours."""
+        nonlocal cancel_reminder
+        if cancel_reminder is not None:
+            cancel_reminder()
+            cancel_reminder = None
+
+        def reminder_fired(_now) -> None:
+            nonlocal cancel_reminder
+            cancel_reminder = None
+            current = (coordinator.data or {}).get("recommendation")
+            if current != expected:
+                _LOGGER.debug(
+                    "Klimat Domowy: reminder cancelled because recommendation changed (expected=%r, current=%r)",
+                    expected,
+                    current,
+                )
+                return
+            hass.add_job(
+                schedule_timer,
+                f"same recommendation still active; 2-hour reminder for {expected!r}",
+            )
+
+        cancel_reminder = async_call_later(hass, timedelta(hours=2), reminder_fired)
+        _LOGGER.debug("Klimat Domowy: next reminder for %r scheduled in 120 min", expected)
+
     @callback
     def coordinator_updated() -> None:
         """Schedule changes, and retry a failed send when new sensor data arrives."""
-        nonlocal last_seen
+        nonlocal last_seen, cancel_reminder
         current = (coordinator.data or {}).get("recommendation")
         if not current:
             return
         changed = current != last_seen
         if changed:
             last_seen = current
+            if cancel_reminder is not None:
+                cancel_reminder()
+                cancel_reminder = None
             # The timer is deliberately not reset for further changes. When it fires,
             # the send path reads the latest recommendation and sends at most that one.
             schedule_timer(f"recommendation changed to {current!r}")
@@ -197,11 +229,14 @@ def async_setup_notifications(
 
     @callback
     def cleanup() -> None:
-        nonlocal cancel_timer
+        nonlocal cancel_timer, cancel_reminder
         if remove_listener is not None:
             remove_listener()
         if cancel_timer is not None:
             cancel_timer()
             cancel_timer = None
+        if cancel_reminder is not None:
+            cancel_reminder()
+            cancel_reminder = None
 
     entry.async_on_unload(cleanup)
