@@ -648,7 +648,7 @@ async def async_setup_entry(
         notification_parts.append(action)
         if rain is not None and rain > 0:
             notification_parts.append(f"Opad: {rain:g} mm w ostatniej godzinie.")
-        notification_message = "\\n".join(notification_parts)
+        notification_message = "\n".join(notification_parts)
 
         # The card uses the same short, non-repetitive explanation. Detailed
         # measurements remain available in the dedicated reading tiles.
