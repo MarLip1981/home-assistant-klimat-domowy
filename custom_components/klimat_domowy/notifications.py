@@ -125,7 +125,19 @@ def async_setup_notifications(
                 await hass.services.async_call(
                     "notify",
                     service,
-                    {"title": f"Klimat Domowy: {expected}", "message": message},
+                    {
+                        "title": f"Klimat Domowy: {expected}",
+                        "message": message,
+                        "data": {
+                            "actions": [
+                                {
+                                    "action": "URI",
+                                    "title": "Zobacz szczegóły",
+                                    "uri": "/dashboard-monitor/pogoda",
+                                }
+                            ]
+                        },
+                    },
                     blocking=True,
                 )
             elif notify_entity_available:
