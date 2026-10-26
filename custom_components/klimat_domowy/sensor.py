@@ -612,13 +612,47 @@ async def async_setup_entry(
         else:
             rain_text = ""
 
-        notification_message = (
-            f"{opening}\\n\\n"
-            f"{indoor_text} {outdoor_text}\\n"
-            f"{forecast_air_text} {pollution_readings_text} {pollen_text}\\n\\n"
-            f"Co zrobić? {action}\\n"
-            f"{season_guidance}{rain_text}"
+        # Keep phone notifications short; the card retains detailed readings.
+        compact_readings = []
+        if temp_in is not None:
+            compact_readings.append(f"Dom {temp_in:.1f}°C")
+        if hum_in is not None and f"{hum_in:.0f}%" not in opening:
+            compact_readings.append(f"wilgotność {hum_in:.0f}%")
+        if temp_out is not None:
+            compact_readings.append(f"na zewnątrz {temp_out:.1f}°C")
+        if pm25 is not None:
+            compact_readings.append(f"PM2.5 {pm25:g}")
+        if pm10 is not None:
+            compact_readings.append(f"PM10 {pm10:g}")
+        compact_context = " · ".join(compact_readings)
+        forecast_summary = (
+            "Prognoza zanieczyszczeń: podwyższone."
+            if poor_air else
+            "Prognoza zanieczyszczeń bez przekroczeń."
+            if pollution_known else
+            "Brak danych o zanieczyszczeniach."
         )
+        pollen_summary = (
+            "Pyłki: wysokie ryzyko."
+            if pollen_high else
+            "Pyłki wykryte."
+            if pollen_present else
+            "Pyłki: niskie ryzyko."
+            if pollen_low or pollen_none_detected else
+            "Brak danych o pyłkach."
+        )
+        notification_parts = [opening]
+        if compact_context:
+            notification_parts.append(compact_context)
+        notification_parts.append(f"{forecast_summary} {pollen_summary}")
+        notification_parts.append(action)
+        if rain is not None and rain > 0:
+            notification_parts.append(f"Opad: {rain:g} mm w ostatniej godzinie.")
+        notification_message = "\\n".join(notification_parts)
+
+        # The card uses the same short, non-repetitive explanation. Detailed
+        # measurements remain available in the dedicated reading tiles.
+        reason = f"{opening} {action}"
 
         return {
             "recommendation": recommendation,
