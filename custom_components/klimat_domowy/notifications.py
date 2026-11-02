@@ -124,7 +124,19 @@ def async_setup_notifications(
                 await hass.services.async_call(
                     "notify",
                     service,
-                    {"title": expected, "message": message},
+                    {
+                        "title": expected,
+                        "message": message,
+                        "data": {
+                            "actions": [
+                                {
+                                    "action": "URI",
+                                    "title": "Zobacz szczegóły",
+                                    "uri": "/dashboard-monitor/pogoda",
+                                }
+                            ]
+                        },
+                    },
                     blocking=True,
                 )
             elif notify_entity_available:
@@ -135,6 +147,15 @@ def async_setup_notifications(
                         "entity_id": service_value,
                         "title": expected,
                         "message": message,
+                        "data": {
+                            "actions": [
+                                {
+                                    "action": "URI",
+                                    "title": "Zobacz szczegóły",
+                                    "uri": "/dashboard-monitor/pogoda",
+                                }
+                            ]
+                        },
                     },
                     blocking=True,
                 )
