@@ -118,14 +118,13 @@ def async_setup_notifications(
         # Prefer the concise notification summary with explicit sensor readings;
         # keep the longer explanation available on the card as "reason".
         message = attributes.get("notification_message") or attributes.get("reason") or "Sprawdź kartę Klimat Domowy."
-        message = f"Zalecenie z {now.strftime('%d.%m.%Y, %H:%M')}\n\n{message}"
 
         try:
             if legacy_service_available:
                 await hass.services.async_call(
                     "notify",
                     service,
-                    {"title": f"Klimat Domowy: {expected}", "message": message},
+                    {"title": expected, "message": message},
                     blocking=True,
                 )
             elif notify_entity_available:
@@ -134,7 +133,7 @@ def async_setup_notifications(
                     "send_message",
                     {
                         "entity_id": service_value,
-                        "title": f"Klimat Domowy: {expected}",
+                        "title": expected,
                         "message": message,
                     },
                     blocking=True,
