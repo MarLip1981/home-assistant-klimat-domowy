@@ -128,6 +128,7 @@ def async_setup_notifications(
                         "title": expected,
                         "message": message,
                         "data": {
+                            "url": "/dashboard-monitor/pogoda",
                             "actions": [
                                 {
                                     "action": "URI",
@@ -148,6 +149,7 @@ def async_setup_notifications(
                         "title": expected,
                         "message": message,
                         "data": {
+                            "url": "/dashboard-monitor/pogoda",
                             "actions": [
                                 {
                                     "action": "URI",
